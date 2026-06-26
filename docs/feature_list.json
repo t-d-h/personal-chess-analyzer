@@ -28,16 +28,16 @@
     "behavior": "C analyze-service can spawn a Stockfish subprocess over UCI, analyze a single position (FEN), and return the centipawn evaluation and best move. Verified by a standalone CLI tool.",
     "verification": "make test-analyze-single",
     "design_file": "F04.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "make test-analyze-single → cp=-34 best=c7c5; make check → All checks passed (26 tests) (2026-06-26)"
   },
   {
     "id": "F05",
     "behavior": "C analyze-service loops over every move in a game PGN, computes per-move win% loss, accuracy score, and classification (best/excellent/good/inaccuracy/mistake/blunder/brilliant/book), and prints a correct move-by-move table for a known reference game.",
     "verification": "make test-analyze-game",
     "design_file": "F05.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "make test-analyze-game → VALID: 7 moves; make check → All checks passed (26 tests) (2026-06-26)"
   },
   {
     "id": "F06",

@@ -8,7 +8,10 @@
 ANALYZE_SRC   := src/analyze-service
 API_SRC       := src/api-gateway
 FRONTEND_SRC  := src/frontend
-ANALYZE_BIN   := $(ANALYZE_SRC)/bin/analyze
+ANALYZE_SINGLE_BIN := $(ANALYZE_SRC)/bin/analyze-single
+ANALYZE_GAME_BIN   := $(ANALYZE_SRC)/bin/analyze-game
+ANALYZE_TOOLS      := $(ANALYZE_SRC)/tools
+ANALYZE_TESTS       := $(ANALYZE_SRC)/tests
 
 COMPOSE := docker compose -f deploy/docker-compose.yml
 
@@ -67,16 +70,13 @@ infra-logs: ## Tail logs for all Docker Compose services
 	$(COMPOSE) logs -f
 
 # ─── Build ────────────────────────────────────────────────────────────────────
-build-analyze: ## Compile the C analyze-service binary
-	@if [ -d $(ANALYZE_SRC)/src ]; then \
-	  mkdir -p $(ANALYZE_SRC)/bin; \
+build-analyze: ## Compile the C analyze-service binaries (single + game)
+	@if [ -f $(ANALYZE_SRC)/Makefile ]; then \
 	  echo "==> Compiling C analyze-service..."; \
-	  $(CC) $(CFLAGS) -o $(ANALYZE_BIN) \
-	    $(ANALYZE_SRC)/src/*.c \
-	    $(LDFLAGS); \
-	  echo "==> Binary: $(ANALYZE_BIN)"; \
+	  $(MAKE) -C $(ANALYZE_SRC) build; \
+	  echo "==> Binaries: $(ANALYZE_SINGLE_BIN), $(ANALYZE_GAME_BIN)"; \
 	else \
-	  echo "  SKIP: $(ANALYZE_SRC)/src not found yet"; \
+	  echo "  SKIP: $(ANALYZE_SRC)/Makefile not found yet"; \
 	fi
 
 build-frontend: ## Build the React frontend for production
@@ -117,20 +117,16 @@ test: ## Run all Python/pytest tests
 	pytest tests/ -v
 
 test-analyze-single: build-analyze ## Run standalone single-position Stockfish analysis (F04)
-	@if [ -f $(ANALYZE_BIN) ]; then \
+	@if [ -f $(ANALYZE_SINGLE_BIN) ]; then \
 	  echo "==> Testing single-position analysis..."; \
-	  $(ANALYZE_BIN) --single "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"; \
+	  timeout 30 $(ANALYZE_SINGLE_BIN) "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1" 12; \
 	else \
 	  echo "ERROR: Analyze binary not built. Run 'make build-analyze' first." && exit 1; \
 	fi
 
-test-analyze-game: build-analyze ## Run full game analysis against reference PGN (F05)
-	@if [ -f $(ANALYZE_BIN) ]; then \
-	  echo "==> Testing full game analysis..."; \
-	  $(ANALYZE_BIN) --game tests/fixtures/reference_game.pgn; \
-	else \
-	  echo "ERROR: Analyze binary not built. Run 'make build-analyze' first." && exit 1; \
-	fi
+test-analyze-game: ## Run full game analysis against reference PGN (F05)
+	@echo "==> Testing full game analysis..."
+	$(MAKE) -C $(ANALYZE_SRC) test-game
 
 # ─── Lint / Format ────────────────────────────────────────────────────────────
 lint: ## Run linters (TypeScript + Python ruff/mypy)
@@ -170,7 +166,7 @@ check: lint test ## Full verification: lint + all tests (CI gate)
 
 # ─── Clean ────────────────────────────────────────────────────────────────────
 clean: ## Remove build artifacts and stop infra
-	rm -f $(ANALYZE_BIN)
+	rm -rf $(ANALYZE_SRC)/bin
 	@if [ -d $(FRONTEND_SRC)/dist ];  then rm -rf $(FRONTEND_SRC)/dist;  fi
 	@if [ -d $(API_SRC)/dist ];       then rm -rf $(API_SRC)/dist;        fi
 	$(COMPOSE) down -v 2>/dev/null || true
