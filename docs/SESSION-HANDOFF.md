@@ -2,44 +2,46 @@
 
 ## Current State
 - Features F01–F05, F07, F08 fully implemented and verified.
+- F06 (Redis stream consumer) implemented: worker.c + main_worker.c written, binary builds clean, tests written.
 - F08 adds deduplication/caching: POST /api/games returns 200 `{ cached: true }` when pgnHash or chesscomGameId matches an existing game.
-- F06 (Redis stream consumer) is partially started: `mongo_conn.c/h`, `redis_conn.c/h`, `worker.h` exist in `src/analyze-service/src/` but `main_worker.c` and `worker.c` (the XREADGROUP loop) are not yet written. Makefile not updated.
-- 46/46 tests passing, `make check` green (when infra is running).
-- Mypy fix applied: `Generator` return type added to all 6 test files' `client` fixtures.
+- 53+ test files in test suite; mypy 8/8 clean.
+- F06 is in "working" state — binary built, tests written, full integration run pending infra setup.
+- Latest commit: F06 — C worker process with XREADGROUP loop
 
 ## What Changed (this session)
-- **Mypy fix**: 6 test files had `client` fixtures using `yield` but annotated as returning `httpx.Client`. Fixed by adding `from typing import Generator` and changing return types to `Generator[httpx.Client, None, None]`. Files: `test_api.py`, `test_ingestion.py`, `test_infra.py`, `test_chesscom.py`, `test_cache.py`, `test_frontend_e2e.py`.
+- **Mypy fix**: `Generator[httpx.Client, None, None]` return type on 6 test client fixtures.
+- **F06 implementation**: `worker.c` (XREADGROUP polling, progress hash, XACK), `main_worker.c` (thread pool), pkg-config for C library includes, Makefile updated.
+- **F06 tests**: `tests/test_analyze_service.py` — 6 integration tests.
+- **Makefile**: `build-analyze` now also builds `analyze-worker` binary.
+- **feature_list.json**: F06 state updated to "working".
 
 ## Key Design Decisions
-- `findExisting()` uses `$or: [{ chesscomGameId }, { pgnHash }]` for URL path — this catches both same-URL resubmission AND same-PGN-from-different-source.
-- PGN paste docs omit `chesscomGameId` field entirely (not `null`) — this avoids MongoDB unique sparse index treating `null` as a duplicate value.
-- 200 (not 201) distinguishes cache hits from new submissions.
-- E11000 catch block provides concurrency safety: two parallel identical submissions both succeed (one inserts, the other gets cached: true).
-- API server starts on TEST_PORT=18080 (via `conftest.py`) when running tests. Port 8080 is occupied on dev machine.
-- MongoDB on this machine: `mongodb_container` on 27017 (auth required), `chess-mongodb` from docker-compose on 27018 (no auth). Test infrastructure uses `localhost:27018`.
+- Worker uses fork() to spawn `pgn_to_fens.js` (Node/chess.js) for PGN→FEN conversion and `analyze-game` binary for Stockfish analysis.
+- hiredis `void*` element accessor requires `REPLY_ELEM(msg, i)` macro for compatibility.
+- Progress hash TTL: 3600s for running, 300s for completed/failed.
+- XAUTOCLAIM on startup reclaims stale entries idle > 10 minutes.
+- Connection URLs from env: `REDIS_URL`, `MONGO_URL`, `MONGO_DB`; defaults: `redis://localhost:6379`, `mongodb://localhost:27017/chess_analyzer`.
+- `make test-single` and `make test-game` still pass with zero warnings.
 
 ## Environment / Running Tests
 - Docker infra: `docker compose -f deploy/docker-compose.yml up -d redis mongodb` (already running)
-- Start API gateway manually: `cd src/api-gateway && PORT=18080 MONGO_URL=mongodb://localhost:27018/chess_analyzer_test node dist/index.js`
-- Or let conftest.py start everything via `pytest tests/` (takes ~60s)
-- `SKIP_INFRA=1` uses `API_BASE_URL` from env directly without starting Docker
+- Build worker: `make -C src/analyze-service build-worker`
+- Start API gateway (for manual testing): `cd src/api-gateway && PORT=18080 MONGO_URL=mongodb://localhost:27018/chess_analyzer_test node dist/index.js`
+- Run F06 tests: `pytest tests/test_analyze_service.py -v` (requires API gateway + analyze-worker running)
+- Port 8080 occupied → TEST_API_PORT=18080 for test API server
+- MongoDB: 27018 (docker-compose, no auth) vs 27017 (pre-existing mongodb_container, auth required)
 
-## Next Steps (F06 — Queue Integration)
-1. Write `src/analyze-service/src/worker.c` — XREADGROUP loop, progress hash updates, XACK
-2. Write `src/analyze-service/src/main_worker.c` — entry point with thread pool
-3. Update `src/analyze-service/Makefile` — add `build-worker` and `test-worker` targets
-4. Write `tests/test_analyze_service.py` — integration test (POST /api/games, wait for MongoDB analysis doc)
-5. Run `make check` to verify F06 end-to-end
-
-## F06 Partial Implementation Notes
-- `mongo_conn.c/h` — complete (connect, ping, mark_running, update_analysis)
-- `redis_conn.c/h` — complete (connect, cmd, free_reply)
-- `worker.h` — WorkerCtx struct defined, STREAM_KEY="chess:analysis-jobs", CONSUMER_GROUP="workers"
-- Missing: `worker.c` (XREADGROUP polling loop), `main_worker.c` (pthread spawning + startup reclaim via XAUTOCLAIM)
+## Next Steps (F06 — Final Verification)
+1. Start Docker infra: `docker compose -f deploy/docker-compose.yml up -d redis mongodb`
+2. Start API gateway: `cd src/api-gateway && PORT=18080 MONGO_URL=mongodb://localhost:27018/chess_analyzer_test node dist/index.js`
+3. Start worker: `cd src/analyze-service && MONGO_URL=mongodb://localhost:27018/chess_analyzer_test ./bin/analyze-worker`
+4. Run F06 tests: `pytest tests/test_analyze_service.py -v`
+5. Update feature_list.json evidence once tests pass
 
 ## Known Issues / Environment Notes
 - Port 8080 occupied → use PORT=18080 locally for test API server
 - MongoDB host port: 27018 (docker-compose), 27017 (pre-existing mongodb_container with auth)
 - Stockfish binary at `/usr/games/stockfish` (Stockfish 16)
 - `STOCKFISH_PATH` env var supported for override
-- chesscomGameId unique index migration: old non-unique index is auto-dropped on gateway startup
+- C binaries build with pkg-config for libmongoc-1.0 / libbson-1.0 / hiredis
+- analyze-worker binary at `src/analyze-service/bin/analyze-worker`
