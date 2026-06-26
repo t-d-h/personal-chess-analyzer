@@ -1,0 +1,25 @@
+# Node
+node_modules/
+dist/
+*.js.map
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Env
+.env
+*.env.local
+
+# Build
+*.o
+*.a
+bin/
+
+# Editor
+.vscode/
+.idea/
+*.swp

@@ -155,7 +155,7 @@ services:
     container_name: chess-mongodb
     restart: unless-stopped
     ports:
-      - "${MONGO_HOST_PORT:-27017}:27017"  # exposed for local dev tools only
+      - "${MONGO_HOST_PORT:-27018}:27017"  # exposed for local dev tools only
     environment:
       MONGO_INITDB_DATABASE: chess_analyzer
     volumes:
