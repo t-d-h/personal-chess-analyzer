@@ -12,6 +12,7 @@ Run:
 
 import os
 import subprocess
+import uuid
 
 import httpx
 import pytest
@@ -21,16 +22,15 @@ COMPOSE_FILE = os.path.join(REPO_ROOT, "deploy", "docker-compose.yml")
 
 API_BASE = os.getenv("API_BASE_URL", "http://localhost:8080")
 
-SAMPLE_PGN = """\
-[Event "Infra Test"]
-[White "W"]
-[Black "B"]
-[Result "*"]
-
-1. e4 e5 *
-"""
-
 TEST_MONGO_DB = os.getenv("MONGO_DB", "chess_analyzer_test")
+
+
+def _unique_pgn() -> str:
+    tag = uuid.uuid4().hex[:8]
+    return (
+        f'[Event "Infra{tag}"]\n[White "W"]\n[Black "B"]\n'
+        f'[Result "*"]\n\n1. e4 e5 *'
+    )
 
 
 @pytest.fixture(scope="module")
@@ -68,7 +68,7 @@ class TestRedis:
         assert "workers" in result.stdout
 
     def test_xadd_after_post(self, client: httpx.Client) -> None:
-        resp = client.post("/api/games", json={"pgn": SAMPLE_PGN})
+        resp = client.post("/api/games", json={"pgn": _unique_pgn()})
         assert resp.status_code == 201
 
         result = subprocess.run(

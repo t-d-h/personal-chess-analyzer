@@ -1,39 +1,40 @@
 # Session Handoff
 
 ## Current State
-- Features F01–F05 fully implemented and verified.
-- F05 adds full game analysis: per-move eval, win% loss, accuracy, move classification.
+- Features F01–F05, F07, F08 fully implemented and verified.
+- F08 adds deduplication/caching: POST /api/games returns 200 `{ cached: true }` when pgnHash or chesscomGameId matches an existing game.
+- 46/46 tests passing, `make check` green.
 
 ## What Changed
-- `src/analyze-service/src/analyzer.h` — MoveResult, PlayerSummary, GameAnalysis structs; Classification enum; win_percent, move_accuracy, classify, classification_str, compute_player_summary API
-- `src/analyze-service/src/analyzer.c` — Implementation of win% conversion (logistic formula), move accuracy (exponential decay), classification logic (book/best/excellent/good/inaccuracy/mistake/blunder/brilliant), player summary aggregation
-- `src/analyze-service/src/main_game.c` — CLI entry point for full game: reads FENs from stdin, sidecar JSON with SAN+captures, runs Stockfish multipv=2 on each position, computes per-move analysis, outputs JSON to stdout
-- `src/analyze-service/tools/pgn_to_fens.js` — Node.js helper using chess.js: expands PGN → newline-separated FEN list (stdout) + sidecar JSON with SAN moves and capture flags
-- `src/analyze-service/tools/package.json` + `node_modules/chess.js` — chess.js dependency for PGN parsing
-- `src/analyze-service/tests/reference_game.pgn` — Scholar's Mate game (7 plies, known outcome)
-- `src/analyze-service/tests/check_output.py` — Validates output JSON: structural checks, range checks, classification validity, player summary consistency
-- `src/analyze-service/Makefile` — Added `build-game`, `tools`, `test-game`, `distclean` targets
-- Top-level `Makefile` — Updated `ANALYZE_GAME_BIN`, `test-analyze-game` delegates to sub-Makefile
-- `docs/feature_list.json` — F05 state → completed
+- `src/api-gateway/src/routes/games.ts` — Added `findExisting()` helper (queries by pgnHash, or by `$or: [{ chesscomGameId }, { pgnHash }]` for URL submissions). Added `sendCached()` helper returning 200 with `cached: true`. Both PGN and URL paths now check dedup before insert. E11000 race-condition catch also returns 200 cached. 200 response schema added alongside 201.
+- `src/api-gateway/src/models/game.ts` — `chesscomGameId` changed from `string | null` to optional `string` (field omitted for PGN paste to avoid unique sparse index null collision).
+- `src/api-gateway/src/services/pgn.ts` — `normalizePgn()` enhanced: strips `\d+\.{3}` black move numbers and `\[%[^\]]*\]` clock annotations per F08 design.
+- `src/api-gateway/src/services/db.ts` — `chesscomGameId` index changed to `unique: true, sparse: true`. Old non-unique index is dropped on startup automatically.
+- `tests/conftest.py` — Mock chess.com server returns unique PGN per gameId (Event header varies). Added `_clean_games_collection()` to delete all game documents between test modules. Drops test database at session start.
+- `tests/test_cache.py` — New: 7 tests covering same-PGN dedup, same-URL dedup, concurrent submission, different PGNs, comment normalization, clock annotation normalization, URL→PGN cross-dedup.
+- `tests/test_ingestion.py` — Most tests now use `_unique_pgn()` to avoid dedup collisions. Dedup test updated to expect 200 cached:true.
+- `tests/test_chesscom.py` — Uses `_unique_pgn()` for PGN fallback test. Mock server generates unique PGNs per gameId.
+- `tests/test_infra.py` — Uses `_unique_pgn()` for XADD test.
 
 ## Key Design Decisions
-- Two-phase pipeline: `pgn_to_fens.js` (Node/chess.js) → `analyze-game` (C/Stockfish) to avoid reimplementing chess board in C
-- Sidecar JSON carries SAN + capture info; FENs piped via stdin
-- multipv=2 used to detect sacrifices (BRILLIANT): requires is_capture + is_best_move + 2nd-best move within 50cp
-- BOOK_PLIES=10: first 10 plies classified as "book" regardless of eval
-- Black's cp values are negated from engine's perspective (engine always reports from white's POV)
+- `findExisting()` uses `$or: [{ chesscomGameId }, { pgnHash }]` for URL path — this catches both same-URL resubmission AND same-PGN-from-different-source.
+- PGN paste docs omit `chesscomGameId` field entirely (not `null`) — this avoids MongoDB unique sparse index treating `null` as a duplicate value.
+- 200 (not 201) distinguishes cache hits from new submissions.
+- E11000 catch block provides concurrency safety: two parallel identical submissions both succeed (one inserts, the other gets cached: true).
 
 ## Verification
-- `make test-analyze-single` → `cp=-34 best=c7c5` (F04 still passing)
-- `make test-analyze-game` → `VALID: 7 moves, white accuracy=100.0%, black accuracy=100.0%`
-- `make check` → All checks passed (26 Python tests + lint)
-- C binaries compile with `-Wall -Wextra` and zero warnings
+- `pytest tests/test_cache.py -v` → 7 passed
+- `make check` → 46 tests, All checks passed
+- `npx tsc --noEmit` → 0 errors
 
 ## Known Issues / Environment Notes
 - Port 8080 occupied → use PORT=8081 locally
 - MongoDB host port: 27018
 - Stockfish binary at `/usr/games/stockfish` (Stockfish 16)
 - `STOCKFISH_PATH` env var supported for override
+- chesscomGameId unique index migration: old non-unique index is auto-dropped on gateway startup
 
 ## Next Steps
 - F06: Redis stream consumer — analyze-service consumes jobs from Redis, writes progress/results
+- F09: Frontend — React + TypeScript UI
+- F10: Hardening — rate limiting, PGN size limits, engine timeouts

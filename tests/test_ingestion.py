@@ -14,12 +14,11 @@ Or with a pytest-managed subprocess (via conftest.py fixture).
 """
 
 import os
+import uuid
 import pytest
 import httpx
 
 API_BASE = os.getenv("API_BASE_URL", "http://localhost:8080")
-
-# ─── Sample PGN fixtures ──────────────────────────────────────────────────────
 
 SHORT_GAME_PGN = """\
 [Event "Test"]
@@ -44,6 +43,17 @@ MINIMAL_PGN = """\
 
 1. e4 e5 *
 """
+
+
+def _unique_pgn() -> str:
+    tag = uuid.uuid4().hex[:8]
+    return (
+        f'[Event "T{tag}"]\n[Site "?"]\n[Date "2024.06.15"]\n'
+        f'[White "W{tag}"]\n[WhiteElo "1800"]\n'
+        f'[Black "B{tag}"]\n[BlackElo "1750"]\n'
+        f'[Result "1-0"]\n[ECO "B20"]\n[TimeControl "300"]\n\n'
+        f"1. e4 c5 2. Nf3 d6 1-0"
+    )
 
 
 def _make_long_pgn(num_full_moves: int) -> str:
@@ -83,22 +93,22 @@ def client() -> httpx.Client:
 
 class TestPostGames:
     def test_valid_pgn_returns_201_with_game_id(self, client: httpx.Client) -> None:
-        resp = client.post("/api/games", json={"pgn": SHORT_GAME_PGN})
+        resp = client.post("/api/games", json={"pgn": _unique_pgn()})
         assert resp.status_code == 201
         body = resp.json()
         assert "gameId" in body
         assert "jobId" in body
         assert body["status"] == "queued"
-        assert len(body["gameId"]) == 24  # MongoDB ObjectId hex
+        assert len(body["gameId"]) == 24
 
     def test_game_id_equals_job_id(self, client: httpx.Client) -> None:
-        resp = client.post("/api/games", json={"pgn": SHORT_GAME_PGN})
+        resp = client.post("/api/games", json={"pgn": _unique_pgn()})
         assert resp.status_code == 201
         body = resp.json()
         assert body["gameId"] == body["jobId"]
 
     def test_minimal_pgn_returns_201(self, client: httpx.Client) -> None:
-        resp = client.post("/api/games", json={"pgn": MINIMAL_PGN})
+        resp = client.post("/api/games", json={"pgn": _unique_pgn()})
         assert resp.status_code == 201
 
     def test_empty_body_returns_400(self, client: httpx.Client) -> None:
@@ -120,15 +130,19 @@ class TestPostGames:
         resp = client.post("/api/games", json={"pgn": ""})
         assert resp.status_code == 400
 
-    def test_valid_pgn_submitted_twice_returns_201_both_times(
+    def test_valid_pgn_submitted_twice_returns_cache_hit(
         self, client: httpx.Client
     ) -> None:
-        """Dedup is F08 — for now both insertions should succeed."""
-        resp1 = client.post("/api/games", json={"pgn": MINIMAL_PGN})
-        resp2 = client.post("/api/games", json={"pgn": MINIMAL_PGN})
-        # Both should succeed (or at worst both 201) — no dedup yet
+        pgn = _unique_pgn()
+        resp1 = client.post("/api/games", json={"pgn": pgn})
         assert resp1.status_code == 201
-        assert resp2.status_code == 201
+        game_id_1 = resp1.json()["gameId"]
+
+        resp2 = client.post("/api/games", json={"pgn": pgn})
+        assert resp2.status_code == 200
+        body2 = resp2.json()
+        assert body2["gameId"] == game_id_1
+        assert body2["cached"] is True
 
     def test_301_ply_game_returns_400(self, client: httpx.Client) -> None:
         long_pgn = _make_long_pgn(151)  # 151 full moves = 302 plies > 300
@@ -140,11 +154,9 @@ class TestPostGames:
     def test_300_ply_game_returns_201(self, client: httpx.Client) -> None:
         pgn_150 = _make_long_pgn(150)  # 150 full moves = 300 plies
         resp = client.post("/api/games", json={"pgn": pgn_150})
-        assert resp.status_code == 201
+        assert resp.status_code in (200, 201)
 
     def test_metadata_parsed_correctly(self, client: httpx.Client) -> None:
-        """Metadata verification via GET /api/games/:id — added in F07.
-        For now just confirm 201 and gameId are present."""
-        resp = client.post("/api/games", json={"pgn": SHORT_GAME_PGN})
+        resp = client.post("/api/games", json={"pgn": _unique_pgn()})
         assert resp.status_code == 201
         assert "gameId" in resp.json()

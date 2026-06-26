@@ -31,12 +31,31 @@ API_GATEWAY_DIR = os.path.join(REPO_ROOT, "src", "api-gateway")
 COMPOSE_FILE = os.path.join(REPO_ROOT, "deploy", "docker-compose.yml")
 
 TEST_PORT = int(os.getenv("TEST_API_PORT", "18080"))
-TEST_MONGO_DB = "chess_analyzer_test"
+TEST_MONGO_DB = os.getenv("MONGO_DB", "chess_analyzer_test")
 TEST_MONGO_URL = os.getenv(
     "TEST_MONGO_URL", f"mongodb://localhost:27018/{TEST_MONGO_DB}"
 )
 TEST_REDIS_URL = os.getenv("TEST_REDIS_URL", "redis://localhost:6379")
 STARTUP_TIMEOUT = 60
+
+
+def _clean_games_collection() -> None:
+    empty_filter = json.dumps({})
+    subprocess.run(
+        [
+            "docker", "compose", "-f", COMPOSE_FILE,
+            "exec", "-T", "mongodb",
+            "mongosh", "--quiet", "--eval",
+            f"db.getSiblingDB('{TEST_MONGO_DB}').games.deleteMany({empty_filter})",
+        ],
+        capture_output=True,
+    )
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _clean_games():
+    _clean_games_collection()
+    yield
 
 
 SAMPLE_PGN = """\
@@ -70,10 +89,13 @@ class ChesscomMockHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"game": {}}).encode())
             else:
+                unique_pgn = SAMPLE_PGN.replace(
+                    "Live Chess", f"Game {game_id}"
+                )
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
-                self.wfile.write(json.dumps({"pgn": SAMPLE_PGN}).encode())
+                self.wfile.write(json.dumps({"pgn": unique_pgn}).encode())
         else:
             self.send_response(404)
             self.end_headers()
@@ -150,6 +172,18 @@ def api_server(mock_chesscom_url: str):  # type: ignore[type-arg]
         raise RuntimeError("MongoDB did not become healthy within 80s")
 
     print("[conftest] MongoDB ready.", flush=True)
+
+    # ── 2c. Clean test database ──────────────────────────────────────────────
+    subprocess.run(
+        [
+            "docker", "compose", "-f", COMPOSE_FILE,
+            "exec", "-T", "mongodb",
+            "mongosh", "--quiet", "--eval",
+            f"db.getSiblingDB('{TEST_MONGO_DB}').dropDatabase()",
+        ],
+        capture_output=True,
+    )
+    print("[conftest] Test database cleaned.", flush=True)
 
     # ── 3. Build + Start API gateway subprocess ─────────────────────────────
     print("[conftest] Building API gateway...", flush=True)

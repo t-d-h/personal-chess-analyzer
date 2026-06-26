@@ -53,7 +53,7 @@ export interface AnalysisData {
 export interface GameDocument {
   _id?: ObjectId;
   source: "pgn_paste" | "chesscom_url";
-  chesscomGameId: string | null;
+  chesscomGameId?: string;
   pgn: string;
   pgnHash: string;
   white: { username: string; rating: number | null };

@@ -13,9 +13,14 @@ export async function connectDb(url: string, dbName: string): Promise<void> {
   // Ensure indexes (idempotent — createIndex is a no-op if the index already exists)
   const col = db.collection<GameDocument>("games");
   await col.createIndex({ pgnHash: 1 }, { unique: true, name: "idx_pgn_hash" });
+  try {
+    await col.dropIndex("idx_chesscom_game_id");
+  } catch {
+    // index may not exist yet or collection is empty
+  }
   await col.createIndex(
     { chesscomGameId: 1 },
-    { sparse: true, name: "idx_chesscom_game_id" }
+    { unique: true, sparse: true, name: "idx_chesscom_game_id" }
   );
   await col.createIndex(
     { "analysis.status": 1 },

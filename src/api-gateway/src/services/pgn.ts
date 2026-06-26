@@ -21,8 +21,10 @@ export interface ParsedPgn {
  */
 function normalizePgn(raw: string): string {
   return raw
-    .replace(/\{[^}]*\}/g, "") // strip { comments }
-    .replace(/;[^\n]*/g, "") // strip ; end-of-line comments
+    .replace(/\{[^}]*\}/g, "")
+    .replace(/;[^\n]*/g, "")
+    .replace(/\d+\.\.\./g, "")
+    .replace(/\[%[^\]]*\]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }

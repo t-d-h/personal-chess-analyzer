@@ -52,16 +52,16 @@
     "behavior": "GET /api/jobs/:jobId returns live progress (status, movesAnalyzed, movesTotal) read from the Redis hash. GET /api/games/:gameId returns metadata. GET /api/games/:gameId/analysis returns the full move list and player summaries once status=completed, or 409 while still running.",
     "verification": "pytest tests/test_api.py",
     "design_file": "F07.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "13 passed in 9.32s — pytest tests/test_api.py -v; 39 passed total; make check → All checks passed (2026-06-26)"
   },
   {
     "id": "F08",
     "behavior": "POST /api/games deduplicates by pgnHash (and chesscomGameId when available) against MongoDB. A cache hit returns the existing gameId immediately without publishing a new Redis job.",
     "verification": "pytest tests/test_cache.py",
     "design_file": "F08.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "7 passed in 5.88s — pytest tests/test_cache.py -v; 46 passed total; make check → All checks passed (2026-06-26)"
   },
   {
     "id": "F09",

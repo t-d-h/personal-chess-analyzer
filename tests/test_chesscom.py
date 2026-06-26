@@ -12,11 +12,23 @@ Run:
 """
 
 import os
+import uuid
 
 import httpx
 import pytest
 
 API_BASE = os.getenv("API_BASE_URL", "http://localhost:8080")
+
+
+def _unique_pgn() -> str:
+    tag = uuid.uuid4().hex[:8]
+    return (
+        f'[Event "T{tag}"]\n[Site "?"]\n[Date "2024.06.15"]\n'
+        f'[White "W{tag}"]\n[WhiteElo "1800"]\n'
+        f'[Black "B{tag}"]\n[BlackElo "1750"]\n'
+        f'[Result "1-0"]\n[ECO "B20"]\n[TimeControl "300"]\n\n'
+        f"1. e4 c5 2. Nf3 d6 1-0"
+    )
 
 
 @pytest.fixture(scope="module")
@@ -90,7 +102,5 @@ class TestChesscomUrlIngestion:
     def test_pgn_still_works_after_f02(
         self, client: httpx.Client
     ) -> None:
-        from test_ingestion import SHORT_GAME_PGN
-
-        resp = client.post("/api/games", json={"pgn": SHORT_GAME_PGN})
+        resp = client.post("/api/games", json={"pgn": _unique_pgn()})
         assert resp.status_code == 201
