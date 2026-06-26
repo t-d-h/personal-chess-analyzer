@@ -1,33 +1,36 @@
 # Session Handoff
 
 ## Current State
-- Feature F01 (PGN ingestion) and F02 (chess.com URL ingestion) fully implemented and verified.
-- New files since F01: src/api-gateway/src/services/chesscom.ts, tests/test_chesscom.py
+- Features F01, F02, F03 fully implemented and verified.
+- F03 adds Redis XADD wiring + consumer group initialization + all integration tests.
 
 ## What Changed
-- `src/api-gateway/src/services/chesscom.ts` — new service:
-  - `parseChesscomUrl(url)` — regex-based URL validation + gameId extraction
-  - `fetchPgnFromUrl(url)` — calls chess.com API (configurable via CHESSCOM_API_BASE env var) with 5s timeout
-- `src/api-gateway/src/routes/games.ts` — updated POST /api/games route:
-  - Now handles both `{ pgn }` and `{ url }` inputs
-  - Returns 400 if both or neither provided
-  - URL path: fetches PGN from chess.com, then follows same persist/return flow as PGN path
-  - Sets `source: "chesscom_url"` and `chesscomGameId` on documents from URL ingestion
-- `src/api-gateway/node-fetch@2.7.0` + `@types/node-fetch@2` — HTTP client for chess.com API calls
-- `tests/test_chesscom.py` — 8 F02 integration tests (mock chess.com server via conftest)
-- `tests/conftest.py` — added mock chess.com HTTP server + CHESSCOM_API_BASE env var for API gateway
+- `src/api-gateway/src/services/redis.ts` — new Redis service module:
+  - `connectRedis(url)` — connects to Redis and creates consumer group (`workers` on `chess:analysis-jobs`)
+  - `enqueueJob(gameId, pgn)` — real `XADD` to the Redis stream
+  - `closeRedis()` — graceful shutdown
+  - Exports `STREAM_KEY` and `CONSUMER_GROUP` constants
+- `src/api-gateway/src/index.ts` — now calls `connectRedis(REDIS_URL)` on startup, with SIGTERM/SIGINT handlers for graceful Redis shutdown
+- `src/api-gateway/src/routes/games.ts` — replaced "Redis stub" log lines with real `enqueueJob()` calls on both PGN and chess.com URL paths
+- `src/api-gateway/package.json` — added `ioredis` and `@types/ioredis` dependencies
+- `tests/conftest.py` — added `TEST_REDIS_URL`, passes `REDIS_URL` env to API gateway subprocess, added Redis health check wait loop
+- `tests/test_infra.py` — 7 F03 integration tests:
+  - Redis: ping, consumer group exists, XADD after POST
+  - MongoDB: ping, pgnHash index, chesscomGameId index, analysis.status index
+- `Makefile` — pip install now uses `--break-system-packages` flag
+- `docs/feature_list.json` — F03 state updated to "completed"
 
 ## Verification
-- `pytest tests/test_chesscom.py -v` → 8 passed in 7.37s
-- `pytest tests/test_ingestion.py -v` → 11 passed
-- `pytest tests/ -v` → 19 passed in 12.91s
+- `pytest tests/test_infra.py -v` → 7 passed in 7.97s
+- `pytest tests/ -v` → 26 passed in 7.97s
 - `tsc --noEmit` → 0 errors
 
 ## Known Issues / Environment Notes
 - Port 8080 occupied on this machine → use PORT=8081 locally
 - MongoDB host port: 27018 (to avoid conflict with existing `mongodb_container` on 27017)
 - `ts-node-dev` module caching issue — conftest uses `node dist/index.js`
-- CHESSCOM_API_BASE env var can override chess.com API base URL (defaults to https://api.chess.com)
+- CHESSCOM_API_BASE env var can override chess.com API base URL
+- pip3 requires `--break-system-packages` on this system
 
 ## Next Steps
-- F03: Docker Compose + Redis XADD integration (`tests/test_infra.py`)
+- F04: Single-move Stockfish analysis in C

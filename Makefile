@@ -34,8 +34,8 @@ setup: ## Install all dependencies (Node, Python dev tools, C libs check)
 	@command -v stockfish   >/dev/null 2>&1 || echo "WARN: stockfish not in PATH (needed for analyze-service)"
 
 	@echo "==> Installing Python test dependencies..."
-	pip3 install --quiet --upgrade pip
-	pip3 install --quiet pytest pytest-asyncio httpx
+	pip3 install --quiet --break-system-packages --upgrade pip
+	pip3 install --quiet --break-system-packages pytest pytest-asyncio httpx
 
 	@echo "==> Installing API gateway Node dependencies..."
 	@if [ -f $(API_SRC)/package.json ]; then \

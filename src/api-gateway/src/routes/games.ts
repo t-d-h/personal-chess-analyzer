@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { parsePgn } from "../services/pgn";
 import { fetchPgnFromUrl } from "../services/chesscom";
 import { getGamesCollection } from "../services/db";
+import { enqueueJob } from "../services/redis";
 
 interface PostGamesBody {
   pgn?: unknown;
@@ -142,7 +143,8 @@ export async function gamesRoutes(app: FastifyInstance): Promise<void> {
           throw err;
         }
 
-        request.log.info({ gameId }, "game queued via chess.com URL (Redis stub)");
+        await enqueueJob(gameId, fetchResult.pgn);
+        request.log.info({ gameId }, "game queued via chess.com URL");
 
         return reply.code(201).send({
           gameId,
@@ -221,7 +223,8 @@ export async function gamesRoutes(app: FastifyInstance): Promise<void> {
         throw err;
       }
 
-      request.log.info({ gameId }, "game queued (Redis stub)");
+      await enqueueJob(gameId, body.pgn);
+      request.log.info({ gameId }, "game queued");
 
       return reply.code(201).send({
         gameId,

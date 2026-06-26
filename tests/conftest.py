@@ -35,6 +35,7 @@ TEST_MONGO_DB = "chess_analyzer_test"
 TEST_MONGO_URL = os.getenv(
     "TEST_MONGO_URL", f"mongodb://localhost:27018/{TEST_MONGO_DB}"
 )
+TEST_REDIS_URL = os.getenv("TEST_REDIS_URL", "redis://localhost:6379")
 STARTUP_TIMEOUT = 60
 
 
@@ -114,7 +115,25 @@ def api_server(mock_chesscom_url: str):  # type: ignore[type-arg]
         capture_output=True,
     )
 
-    # ── 2. Wait for MongoDB ───────────────────────────────────────────────────
+    # ── 2a. Wait for Redis ──────────────────────────────────────────────────
+    for attempt in range(20):
+        result = subprocess.run(
+            [
+                "docker", "compose", "-f", COMPOSE_FILE,
+                "exec", "-T", "redis",
+                "redis-cli", "ping",
+            ],
+            capture_output=True,
+        )
+        if result.returncode == 0:
+            break
+        time.sleep(2)
+    else:
+        raise RuntimeError("Redis did not become healthy within 40s")
+
+    print("[conftest] Redis ready.", flush=True)
+
+    # ── 2b. Wait for MongoDB ───────────────────────────────────────────────
     for attempt in range(40):
         result = subprocess.run(
             [
@@ -146,6 +165,7 @@ def api_server(mock_chesscom_url: str):  # type: ignore[type-arg]
         "PORT": str(TEST_PORT),
         "MONGO_URL": TEST_MONGO_URL,
         "MONGO_DB": TEST_MONGO_DB,
+        "REDIS_URL": TEST_REDIS_URL,
         "LOG_LEVEL": "warn",
         "NODE_ENV": "test",
         "CHESSCOM_API_BASE": mock_chesscom_url,
