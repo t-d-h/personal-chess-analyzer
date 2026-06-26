@@ -1,7 +1,7 @@
 # Project Progress
 
 ## Current State
-- Latest commit: feat: implement F01 — PGN ingestion API (POST /api/games)
+- Latest commit: 3395463 (fix(tests): resolve environment variable evaluation timing bug and test DB connection string)
 - Test status: 11/11 passing (`pytest tests/test_ingestion.py`)
 - Lint: tsc --noEmit clean (0 errors)
 
