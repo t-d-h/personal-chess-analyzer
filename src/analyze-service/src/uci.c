@@ -68,10 +68,26 @@ void sf_send(StockfishProc *sf, const char *cmd)
     (void)r;
 }
 
+static char *fgets_retry(char *str, int n, FILE *stream)
+{
+    char *res;
+    while (1) {
+        res = fgets(str, n, stream);
+        if (res == NULL) {
+            if (ferror(stream) && errno == EINTR) {
+                clearerr(stream);
+                continue;
+            }
+        }
+        break;
+    }
+    return res;
+}
+
 int sf_read_until(StockfishProc *sf, const char *prefix, char *buf, size_t len)
 {
     size_t prefix_len = strlen(prefix);
-    while (fgets(buf, (int)len, sf->out_stream)) {
+    while (fgets_retry(buf, (int)len, sf->out_stream)) {
         if (strncmp(buf, prefix, prefix_len) == 0) {
             size_t blen = strlen(buf);
             if (blen > 0 && buf[blen - 1] == '\n') buf[blen - 1] = '\0';
@@ -185,7 +201,7 @@ int sf_analyze_fen(StockfishProc *sf, const char *fen, int depth, int multipv, E
     sf_send(sf, cmd);
 
     int done = 0;
-    while (fgets(line, sizeof(line), sf->out_stream)) {
+    while (fgets_retry(line, sizeof(line), sf->out_stream)) {
         if (strncmp(line, "bestmove", 8) == 0) {
             if (out[0].best_move[0] == '\0') {
                 parse_bestmove(line, &out[0]);

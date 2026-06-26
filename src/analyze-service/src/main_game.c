@@ -5,17 +5,34 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <errno.h>
 
 #define MAX_FENS (MAX_PLY + 10)
 #define MAX_LINE 512
 #define MAX_SANS (MAX_PLY + 10)
 #define MAX_CAPTURES (MAX_PLY + 10)
 
+static char *fgets_retry(char *str, int n, FILE *stream)
+{
+    char *res;
+    while (1) {
+        res = fgets(str, n, stream);
+        if (res == NULL) {
+            if (ferror(stream) && errno == EINTR) {
+                clearerr(stream);
+                continue;
+            }
+        }
+        break;
+    }
+    return res;
+}
+
 static int read_fens(FILE *in, char fens[][256], int max)
 {
     int count = 0;
     char line[256];
-    while (fgets(line, sizeof(line), in) && count < max) {
+    while (fgets_retry(line, sizeof(line), in) && count < max) {
         size_t len = strlen(line);
         if (len > 0 && line[len - 1] == '\n') line[--len] = '\0';
         if (len == 0) continue;
