@@ -186,7 +186,7 @@ class TestCacheDedup:
         assert resp1.status_code == 201
         game_id_1 = resp1.json()["gameId"]
 
-        game_doc_expr = f'db.games.findOne({{_id: ObjectId("{game_id_1}")}}, {{pgn: 1}})'
+        game_doc_expr = f'EJSON.stringify(db.games.findOne({{_id: ObjectId("{game_id_1}")}}, {{pgn: 1}}))'
         result = subprocess.run(
             [
                 "docker", "compose", "-f", COMPOSE_FILE,

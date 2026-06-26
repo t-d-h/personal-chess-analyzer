@@ -153,6 +153,16 @@ def api_server(mock_chesscom_url: str):  # type: ignore[type-arg]
     else:
         raise RuntimeError("Redis did not become healthy within 40s")
 
+    import socket
+    for attempt in range(30):
+        try:
+            with socket.create_connection(("localhost", 6379), timeout=1):
+                break
+        except OSError:
+            time.sleep(1)
+    else:
+        raise RuntimeError("Redis host port 6379 did not become ready")
+
     print("[conftest] Redis ready.", flush=True)
 
     # ── 2b. Wait for MongoDB ───────────────────────────────────────────────
@@ -170,6 +180,15 @@ def api_server(mock_chesscom_url: str):  # type: ignore[type-arg]
         time.sleep(2)
     else:
         raise RuntimeError("MongoDB did not become healthy within 80s")
+
+    for attempt in range(30):
+        try:
+            with socket.create_connection(("localhost", 27018), timeout=1):
+                break
+        except OSError:
+            time.sleep(1)
+    else:
+        raise RuntimeError("MongoDB host port 27018 did not become ready")
 
     print("[conftest] MongoDB ready.", flush=True)
 

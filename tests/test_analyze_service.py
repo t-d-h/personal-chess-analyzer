@@ -55,7 +55,7 @@ def _unique_pgn() -> str:
 
 def _mongo_find_game(game_id: str) -> dict:
     """Query MongoDB directly for a game document."""
-    expr = f'db.games.findOne({{_id: ObjectId("{game_id}")}})'
+    expr = f'EJSON.stringify(db.games.findOne({{_id: ObjectId("{game_id}")}}))'
     result = subprocess.run(
         [
             "docker", "compose", "-f", COMPOSE_FILE,
@@ -84,11 +84,10 @@ def _redis_hgetall(key: str) -> dict:
     )
     fields = {}
     if result.returncode == 0:
-        for line in result.stdout.strip().split("\n"):
-            if line:
-                parts = line.split(":", 1)
-                if len(parts) == 2:
-                    fields[parts[0].strip()] = parts[1].strip()
+        lines = [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
+        for i in range(0, len(lines), 2):
+            if i + 1 < len(lines):
+                fields[lines[i]] = lines[i + 1]
     return fields
 
 
@@ -114,6 +113,13 @@ def _xreadgroup_count() -> int:
 
 
 @pytest.fixture(scope="module")
+def client() -> Generator[httpx.Client, None, None]:
+    api_base = os.getenv("API_BASE_URL", "http://localhost:8080")
+    with httpx.Client(base_url=api_base, timeout=10.0) as c:
+        yield c
+
+
+@pytest.fixture(scope="module")
 def worker_process() -> Generator[subprocess.Popen, None, None]:
     """Start the analyze-worker process for the test module."""
     env = {
@@ -124,12 +130,15 @@ def worker_process() -> Generator[subprocess.Popen, None, None]:
         "WORKER_CONCURRENCY": "1",
         "ENGINE_DEPTH": "12",
     }
+    log_path = os.path.join(REPO_ROOT, "worker.log")
+    log_file = open(log_path, "w")
     proc = subprocess.Popen(
         [WORKER_BIN],
         env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=log_file,
+        stderr=log_file,
         preexec_fn=os.setsid,
+        cwd=REPO_ROOT,
     )
     # Give the worker time to connect and reclaim stale entries
     time.sleep(3)
@@ -140,6 +149,8 @@ def worker_process() -> Generator[subprocess.Popen, None, None]:
         proc.wait(timeout=5)
     except Exception:
         pass
+    finally:
+        log_file.close()
 
 
 class TestAnalyzeService:
@@ -287,8 +298,8 @@ class TestAnalyzeService:
         assert resp.status_code == 201
         game_id = resp.json()["gameId"]
 
-        # The test PGN has 4 moves: 1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6
-        expected_moves = 4
+        # The test PGN has 8 plies (moves): 1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6
+        expected_moves = 8
 
         for _ in range(60):
             game_doc = _mongo_find_game(game_id)

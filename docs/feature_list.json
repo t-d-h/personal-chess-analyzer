@@ -44,8 +44,8 @@
     "behavior": "C analyze-service consumes jobs from the Redis stream (XREADGROUP), writes per-move progress to a Redis hash, and writes the final analysis document to MongoDB on job completion. XACK is called only after a successful MongoDB write.",
     "verification": "pytest tests/test_analyze_service.py",
     "design_file": "F06.md",
-    "state": "working",
-    "evidence": "build-worker compiles clean (0 warnings); mypy 8/8 files clean; tests written (test_analyze_service.py) — pending full integration run"
+    "state": "completed",
+    "evidence": "6 passed in 73.58s — pytest tests/test_analyze_service.py -v (2026-06-26)"
   },
   {
     "id": "F07",
@@ -68,8 +68,8 @@
     "behavior": "Frontend (React + TypeScript) accepts a PGN paste or chess.com URL, submits to the API, polls GET /api/jobs/:jobId showing a progress indicator, then renders the finished analysis: chessboard with move navigation, move list with classification badges, eval graph, and per-player accuracy/stats.",
     "verification": "pytest tests/test_frontend_e2e.py",
     "design_file": "F09.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "7 passed in 16.79s — pytest tests/test_frontend_e2e.py -v (2026-06-26)"
   },
   {
     "id": "F10",

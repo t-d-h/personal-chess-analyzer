@@ -1,8 +1,8 @@
 # Project Progress
 
 ## Current State
-- Latest commit: F08 — Caching / Deduplication (POST /api/games)
-- Test status: 46/46 passing (`pytest tests/`); `make test-analyze-single` passing; `make test-analyze-game` passing
+- Latest commit: F06/F09 — Stream consumer and Frontend UI integration
+- Test status: 59/59 passing (`pytest tests/`); `make test-analyze-single` passing; `make test-analyze-game` passing
 - Lint: tsc --noEmit clean (0 errors); C compiles with -Wall -Wextra zero warnings
 - F06 worker (analyze-worker) binary built and compiles clean with pkg-config
 
@@ -14,21 +14,20 @@
 - [x] F03 — Infra bootstrap (Docker Compose + Redis XADD + MongoDB indexes) — 7/7 tests passing
 - [x] F04 — Single-position Stockfish analysis in C — `make test-analyze-single` passing
 - [x] F05 — Full game analysis in C — `make test-analyze-game` passing
-- [x] F06 — Redis stream consumer (C worker with XREADGROUP, progress hash, MongoDB write) — build clean, tests written
+- [x] F06 — Redis stream consumer (C worker with XREADGROUP, progress hash, MongoDB write) — 6/6 tests passing
 - [x] F07 — Remaining API endpoints (GET jobs/:id, GET games/:id, GET games/:id/analysis) — 13/13 tests passing
 - [x] F08 — Caching / Deduplication (pgnHash + chesscomGameId dedup, 200 cached:true) — 7/7 tests passing
-- [x] F09 — Frontend E2E tests written (test_frontend_e2e.py)
+- [x] F09 — Frontend — React + TypeScript UI — 7/7 E2E tests passing
 
 ## In Progress
 - None
 
 ## Known Issues
-- Port 8080 is occupied on dev machine by unknown process; API gateway runs on 8081 locally.
+- Port 8080 is occupied on dev machine by Coc Coc CS 1.6 Server; local development API gateway uses port 18080 or other free ports.
 - MongoDB host port changed to 27018 to avoid conflict with existing `mongodb_container`.
 - `ts-node-dev` has a caching issue with .js module resolution; use `node dist/index.js` for tests.
 - pip3 install requires `--break-system-packages` flag on this system.
 - chesscomGameId unique sparse index requires dropping the old non-unique index on first startup; `db.ts` handles this automatically.
 
 ## Next Steps
-- F09: Frontend — React + TypeScript UI
 - F10: Hardening — rate limiting, PGN size limits, engine timeouts

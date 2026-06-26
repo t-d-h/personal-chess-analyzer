@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <unistd.h>
 
 static int parse_redis_url(const char *url, char *host, int host_size, int *port)
 {
@@ -38,20 +39,24 @@ int redis_conn_init(RedisConn *rc, const char *url)
     memset(rc, 0, sizeof(RedisConn));
     parse_redis_url(url, rc->host, sizeof(rc->host), &rc->port);
 
-    rc->ctx = redisConnect(rc->host, rc->port);
-    if (rc->ctx == NULL || rc->ctx->err) {
-        fprintf(stderr, "[redis] connect error: %s\n",
-                rc->ctx ? rc->ctx->errstr : "alloc failed");
+    int max_retries = 5;
+    for (int attempt = 1; attempt <= max_retries; attempt++) {
+        rc->ctx = redisConnect(rc->host, rc->port);
+        if (rc->ctx && !rc->ctx->err) {
+            struct timeval tv = {5, 0};
+            redisSetTimeout(rc->ctx, tv);
+            fprintf(stderr, "[redis] connected to %s:%d\n", rc->host, rc->port);
+            return 0;
+        }
+
+        fprintf(stderr, "[redis] connect attempt %d/%d failed: %s. Retrying in 1s...\n",
+                attempt, max_retries, rc->ctx ? rc->ctx->errstr : "alloc failed");
         if (rc->ctx) redisFree(rc->ctx);
         rc->ctx = NULL;
-        return -1;
+        sleep(1);
     }
 
-    struct timeval tv = {5, 0};
-    redisSetTimeout(rc->ctx, tv);
-
-    fprintf(stderr, "[redis] connected to %s:%d\n", rc->host, rc->port);
-    return 0;
+    return -1;
 }
 
 void redis_conn_close(RedisConn *rc)
@@ -73,6 +78,9 @@ redisReply *redis_conn_cmd(RedisConn *rc, const char *fmt, ...)
         fprintf(stderr, "[redis] command failed (connection error)\n");
         redisReconnect(rc->ctx);
         return NULL;
+    }
+    if (reply->type == REDIS_REPLY_ERROR) {
+        fprintf(stderr, "[redis] command error: %s (cmd was: %s)\n", reply->str, fmt);
     }
     return reply;
 }
