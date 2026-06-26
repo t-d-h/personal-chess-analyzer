@@ -1,22 +1,27 @@
 """
-conftest.py — Session-scoped fixtures for F01 integration tests.
+conftest.py — Session-scoped fixtures for integration tests.
 
 Lifecycle:
-  1. Start Redis + MongoDB via Docker Compose.
-  2. Wait for MongoDB to be healthy.
-  3. Start the API gateway subprocess on a dedicated test port.
-  4. Wait for /health to respond.
-  5. Yield — tests run.
-  6. Teardown: stop API gateway, then docker compose down.
+  1. Start mock chess.com API server on a random port.
+  2. Start Redis + MongoDB via Docker Compose.
+  3. Wait for MongoDB to be healthy.
+  4. Start the API gateway subprocess on a dedicated test port
+     with CHESSCOM_API_BASE pointing at the mock server.
+  5. Wait for /health to respond.
+  6. Yield — tests run.
+  7. Teardown: stop API gateway, then docker compose down.
 
 Set environment variable SKIP_INFRA=1 to skip fixture startup
 (useful when running against an already-running stack).
 """
 
+import json
 import os
 import signal
 import subprocess
+import threading
 import time
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 import httpx
 import pytest
@@ -25,17 +30,70 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 API_GATEWAY_DIR = os.path.join(REPO_ROOT, "src", "api-gateway")
 COMPOSE_FILE = os.path.join(REPO_ROOT, "deploy", "docker-compose.yml")
 
-# Use a separate port and DB name to avoid colliding with a running dev server
 TEST_PORT = int(os.getenv("TEST_API_PORT", "18080"))
 TEST_MONGO_DB = "chess_analyzer_test"
 TEST_MONGO_URL = os.getenv(
     "TEST_MONGO_URL", f"mongodb://localhost:27018/{TEST_MONGO_DB}"
 )
-STARTUP_TIMEOUT = 60  # seconds
+STARTUP_TIMEOUT = 60
+
+
+SAMPLE_PGN = """\
+[Event "Live Chess"]
+[Site "Chess.com"]
+[Date "2024.03.10"]
+[White "MagnusCarlsen"]
+[WhiteElo "2850"]
+[Black "HikaruNakamura"]
+[BlackElo "2750"]
+[Result "1-0"]
+[ECO "C50"]
+[TimeControl "600"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. d3 Nf6 1-0
+"""
+
+
+class ChesscomMockHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        if self.path.startswith("/pub/game/"):
+            game_id = self.path.split("/pub/game/")[1]
+            if game_id == "notfound":
+                self.send_response(404)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "not found"}).encode())
+            elif game_id == "nopgn":
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"game": {}}).encode())
+            else:
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"pgn": SAMPLE_PGN}).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, format: str, *args: object) -> None:
+        pass
+
+
+@pytest.fixture(scope="session")
+def mock_chesscom_url():
+    server = HTTPServer(("127.0.0.1", 0), ChesscomMockHandler)
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    url = f"http://127.0.0.1:{port}"
+    yield url
+    server.shutdown()
 
 
 @pytest.fixture(scope="session", autouse=True)
-def api_server() -> pytest.FixtureRequest:  # type: ignore[type-arg]
+def api_server(mock_chesscom_url: str):  # type: ignore[type-arg]
     """
     Start infra + API gateway once per test session.
     Sets the API_BASE_URL environment variable for tests that read it.
@@ -43,7 +101,6 @@ def api_server() -> pytest.FixtureRequest:  # type: ignore[type-arg]
     skip_infra = os.getenv("SKIP_INFRA", "0") == "1"
 
     if skip_infra:
-        # Tests are expected to point at whatever is already running
         api_base = os.getenv("API_BASE_URL", "http://localhost:8080")
         os.environ["API_BASE_URL"] = api_base
         yield api_base
@@ -91,6 +148,7 @@ def api_server() -> pytest.FixtureRequest:  # type: ignore[type-arg]
         "MONGO_DB": TEST_MONGO_DB,
         "LOG_LEVEL": "warn",
         "NODE_ENV": "test",
+        "CHESSCOM_API_BASE": mock_chesscom_url,
     }
 
     proc = subprocess.Popen(

@@ -1,14 +1,15 @@
 # Project Progress
 
 ## Current State
-- Latest commit: 3395463 (fix(tests): resolve environment variable evaluation timing bug and test DB connection string)
-- Test status: 11/11 passing (`pytest tests/test_ingestion.py`)
+- Latest commit: (pending F02 commit)
+- Test status: 19/19 passing (`pytest tests/`)
 - Lint: tsc --noEmit clean (0 errors)
 
 ## Completed
 - [x] Create Makefile with setup, dev, test, check, clean targets
 - [x] Create deploy/docker-compose.yml (5-service stack: frontend, api-gateway, analyze-service, redis, mongodb)
 - [x] F01 — PGN ingestion (POST /api/games) — 11/11 tests passing
+- [x] F02 — Chess.com URL ingestion (POST /api/games with url field) — 8/8 tests passing
 
 ## In Progress
 - None
@@ -19,5 +20,4 @@
 - `ts-node-dev` has a caching issue with .js module resolution; use `node dist/index.js` for tests.
 
 ## Next Steps
-- F02: chess.com URL ingestion
 - F03: Docker Compose integration + Redis XADD wiring
