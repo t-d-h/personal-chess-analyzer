@@ -44,8 +44,8 @@
     "behavior": "C analyze-service consumes jobs from the Redis stream (XREADGROUP), writes per-move progress to a Redis hash, and writes the final analysis document to MongoDB on job completion. XACK is called only after a successful MongoDB write.",
     "verification": "pytest tests/test_analyze_service.py",
     "design_file": "F06.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "working",
+    "evidence": "build-worker compiles clean (0 warnings); mypy 8/8 files clean; tests written (test_analyze_service.py) — pending full integration run"
   },
   {
     "id": "F07",

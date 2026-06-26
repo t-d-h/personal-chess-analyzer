@@ -70,11 +70,12 @@ infra-logs: ## Tail logs for all Docker Compose services
 	$(COMPOSE) logs -f
 
 # ─── Build ────────────────────────────────────────────────────────────────────
-build-analyze: ## Compile the C analyze-service binaries (single + game)
+build-analyze: ## Compile the C analyze-service binaries (single + game + worker)
 	@if [ -f $(ANALYZE_SRC)/Makefile ]; then \
 	  echo "==> Compiling C analyze-service..."; \
 	  $(MAKE) -C $(ANALYZE_SRC) build; \
-	  echo "==> Binaries: $(ANALYZE_SINGLE_BIN), $(ANALYZE_GAME_BIN)"; \
+	  $(MAKE) -C $(ANALYZE_SRC) build-worker; \
+	  echo "==> Binaries: $(ANALYZE_SINGLE_BIN), $(ANALYZE_GAME_BIN), $(ANALYZE_SRC)/bin/analyze-worker"; \
 	else \
 	  echo "  SKIP: $(ANALYZE_SRC)/Makefile not found yet"; \
 	fi

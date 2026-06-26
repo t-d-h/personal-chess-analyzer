@@ -1,5 +1,9 @@
 CC ?= gcc
-CFLAGS ?= -Wall -Wextra -O2 -std=c11 -D_POSIX_C_SOURCE=200809L
+CFLAGS ?= -Wall -Wextra -O2 -std=c11 -D_POSIX_C_SOURCE=200809L -pthread
+CFLAGS += $(shell pkg-config --cflags libmongoc-1.0 libbson-1.0 hiredis 2>/dev/null)
+LDFLAGS ?= -lpthread
+LDFLAGS += $(shell pkg-config --libs libmongoc-1.0 libbson-1.0 hiredis 2>/dev/null || echo "-lmongoc-1.0 -lbson-1.0 -lhiredis -lrt")
+LDFLAGS += -lm
 SRC_DIR := src
 BIN_DIR := bin
 
@@ -9,11 +13,16 @@ SINGLE_BIN  := $(BIN_DIR)/analyze-single
 GAME_SRCS := $(SRC_DIR)/uci.c $(SRC_DIR)/analyzer.c $(SRC_DIR)/main_game.c
 GAME_BIN   := $(BIN_DIR)/analyze-game
 
+WORKER_SRCS := $(SRC_DIR)/uci.c $(SRC_DIR)/analyzer.c \
+               $(SRC_DIR)/redis_conn.c $(SRC_DIR)/mongo_conn.c \
+               $(SRC_DIR)/worker.c $(SRC_DIR)/main_worker.c
+WORKER_BIN  := $(BIN_DIR)/analyze-worker
+
 TOOLS_DIR  := tools
 TESTS_DIR  := tests
 NODE_MODULES := $(TOOLS_DIR)/node_modules
 
-.PHONY: build build-single build-game tools test-single test-game clean
+.PHONY: build build-single build-game build-worker tools test-single test-game test-worker clean
 
 build: build-single build-game
 
@@ -21,13 +30,19 @@ build-single: $(SINGLE_BIN)
 
 build-game: $(GAME_BIN) tools
 
+build-worker: $(WORKER_BIN)
+
 $(SINGLE_BIN): $(SINGLE_SRCS) $(SRC_DIR)/uci.h $(SRC_DIR)/analyzer.h
 	mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $(SINGLE_SRCS) -lm
+	$(CC) $(CFLAGS) -o $@ $(SINGLE_SRCS) -lm $(LDFLAGS)
 
 $(GAME_BIN): $(GAME_SRCS) $(SRC_DIR)/uci.h $(SRC_DIR)/analyzer.h
 	mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $(GAME_SRCS) -lm
+	$(CC) $(CFLAGS) -o $@ $(GAME_SRCS) -lm $(LDFLAGS)
+
+$(WORKER_BIN): $(WORKER_SRCS) $(SRC_DIR)/uci.h $(SRC_DIR)/analyzer.h $(SRC_DIR)/worker.h $(SRC_DIR)/redis_conn.h $(SRC_DIR)/mongo_conn.h
+	mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $(WORKER_SRCS) $(LDFLAGS)
 
 tools: $(NODE_MODULES)
 
