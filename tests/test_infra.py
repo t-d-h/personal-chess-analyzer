@@ -13,6 +13,7 @@ Run:
 import os
 import subprocess
 import uuid
+from typing import Generator
 
 import httpx
 import pytest
@@ -34,7 +35,7 @@ def _unique_pgn() -> str:
 
 
 @pytest.fixture(scope="module")
-def client() -> httpx.Client:
+def client() -> Generator[httpx.Client, None, None]:
     api_base = os.getenv("API_BASE_URL", "http://localhost:8080")
     with httpx.Client(base_url=api_base, timeout=10.0) as c:
         yield c

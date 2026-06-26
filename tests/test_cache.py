@@ -13,6 +13,7 @@ Run:
 import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from typing import Generator
 
 import httpx
 import pytest
@@ -98,7 +99,7 @@ PGN_SAME_GAME_NO_CLOCK = """\
 
 
 @pytest.fixture(scope="module")
-def client() -> httpx.Client:
+def client() -> Generator[httpx.Client, None, None]:
     api_base = os.getenv("API_BASE_URL", "http://localhost:8080")
     with httpx.Client(base_url=api_base, timeout=10.0) as c:
         yield c
@@ -177,7 +178,8 @@ class TestCacheDedup:
         assert body2["cached"] is True
 
     def test_chesscom_url_then_pgn_cache_hit(self, client: httpx.Client) -> None:
-        import subprocess, json
+        import json
+        import subprocess
 
         chesscom_url = "https://www.chess.com/game/live/cacheXref999"
         resp1 = client.post("/api/games", json={"url": chesscom_url})

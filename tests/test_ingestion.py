@@ -15,6 +15,8 @@ Or with a pytest-managed subprocess (via conftest.py fixture).
 
 import os
 import uuid
+from typing import Generator
+
 import pytest
 import httpx
 
@@ -82,7 +84,7 @@ def _make_long_pgn(num_full_moves: int) -> str:
 
 
 @pytest.fixture(scope="module")
-def client() -> httpx.Client:
+def client() -> Generator[httpx.Client, None, None]:
     api_base = os.getenv("API_BASE_URL", "http://localhost:8080")
     with httpx.Client(base_url=api_base, timeout=10.0) as c:
         yield c
