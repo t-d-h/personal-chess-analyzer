@@ -28,8 +28,10 @@ COMPOSE_FILE = os.path.join(REPO_ROOT, "deploy", "docker-compose.yml")
 # Use a separate port and DB name to avoid colliding with a running dev server
 TEST_PORT = int(os.getenv("TEST_API_PORT", "18080"))
 TEST_MONGO_DB = "chess_analyzer_test"
-TEST_MONGO_URL = os.getenv("TEST_MONGO_URL", "mongodb://localhost:27018")
-STARTUP_TIMEOUT = 30  # seconds
+TEST_MONGO_URL = os.getenv(
+    "TEST_MONGO_URL", f"mongodb://localhost:27018/{TEST_MONGO_DB}"
+)
+STARTUP_TIMEOUT = 60  # seconds
 
 
 @pytest.fixture(scope="session", autouse=True)

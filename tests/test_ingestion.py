@@ -73,7 +73,8 @@ def _make_long_pgn(num_full_moves: int) -> str:
 
 @pytest.fixture(scope="module")
 def client() -> httpx.Client:
-    with httpx.Client(base_url=API_BASE, timeout=10.0) as c:
+    api_base = os.getenv("API_BASE_URL", "http://localhost:8080")
+    with httpx.Client(base_url=api_base, timeout=10.0) as c:
         yield c
 
 
