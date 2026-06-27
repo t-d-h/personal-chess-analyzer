@@ -2,24 +2,47 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { parseAndValidatePgn } from '../services/pgn';
 import { getGamesCollection } from '../services/db';
 import { GameDocument } from '../models/game';
+import { fetchPgnFromUrl } from '../services/chesscom';
 
 interface PostGamesBody {
-  pgn: string;
+  pgn?: string;
+  url?: string;
 }
 
 export default async function (fastify: FastifyInstance) {
   fastify.post('/api/games', async (request: FastifyRequest<{ Body: PostGamesBody }>, reply: FastifyReply) => {
-    const { pgn } = request.body || {};
+    const { pgn, url } = request.body || {};
 
-    if (!pgn) {
-      return reply.status(400).send({ error: 'pgn is required' });
+    if (pgn && url) {
+      return reply.status(400).send({ error: 'cannot provide both pgn and url' });
+    }
+    if (!pgn && !url) {
+      return reply.status(400).send({ error: 'pgn or url is required' });
+    }
+
+    let finalPgn = pgn;
+    let chesscomGameId: string | null = null;
+    let source: "pgn_paste" | "chesscom_url" = "pgn_paste";
+
+    if (url) {
+      try {
+        const result = await fetchPgnFromUrl(url);
+        finalPgn = result.pgn;
+        chesscomGameId = result.gameId;
+        source = "chesscom_url";
+      } catch (err: any) {
+        if (err.message === 'chess.com API unavailable') {
+          return reply.status(502).send({ error: err.message });
+        }
+        return reply.status(400).send({ error: err.message });
+      }
     }
 
     let parsed;
     try {
-      parsed = parseAndValidatePgn(pgn);
+      parsed = parseAndValidatePgn(finalPgn!);
     } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
+      return reply.status(400).send({ error: url ? 'invalid PGN from chess.com' : err.message });
     }
 
     const gamesCollection = getGamesCollection();
@@ -36,9 +59,9 @@ export default async function (fastify: FastifyInstance) {
 
     const now = new Date();
     const gameDoc: GameDocument = {
-      source: "pgn_paste",
-      chesscomGameId: null,
-      pgn: pgn,
+      source: source,
+      chesscomGameId: chesscomGameId,
+      pgn: finalPgn!,
       pgnHash: parsed.pgnHash,
       white: { username: parsed.whiteUsername, rating: parsed.whiteRating },
       black: { username: parsed.blackUsername, rating: parsed.blackRating },

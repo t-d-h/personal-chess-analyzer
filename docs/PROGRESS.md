@@ -12,6 +12,10 @@
   - Added PGN validation using chess.js
   - Added MongoDB persistence
   - Setup test container for mongodb
+- [x] Implement F02 (Chess.com URL Support)
+  - Created chesscom service for fetching game PGNs
+  - Added support for mock testing
+  - Handled rate limiting/errors properly
 
 ## In Progress
 - None
@@ -20,4 +24,4 @@
 - None
 
 ## Next Steps
-- Implement F02 (Chess.com URL parsing)
+- Implement F03 (Docker Compose and Redis queue setup)

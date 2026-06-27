@@ -12,8 +12,8 @@
     "behavior": "POST /api/games with a chess.com game URL fetches the PGN from the chess.com public API, then behaves identically to F01. Invalid or non-chess.com URLs return 400.",
     "verification": "pytest tests/test_chesscom.py",
     "design_file": "F02.md",
-    "state": "todo",
-    "evidence": ")"
+    "state": "completed",
+    "evidence": "pytest tests/test_chesscom.py passed"
   },
   {
     "id": "F03",

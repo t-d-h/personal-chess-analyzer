@@ -2,6 +2,7 @@ import pytest
 import httpx
 import asyncio
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 API_URL = "http://localhost:18080"
 MONGO_URL = "mongodb://localhost:27017"
@@ -56,7 +57,7 @@ async def test_valid_pgn(db):
     assert "jobId" in data
     assert data["status"] == "queued"
 
-    game = db.games.find_one({"_id": data["gameId"]}) if len(data["gameId"]) != 24 else db.games.find_one()
+    game = db.games.find_one({"_id": ObjectId(data["gameId"])})
     assert game is not None
     assert game["white"]["username"] == "Carlsen,M"
     assert game["black"]["username"] == "Bu Xiangzhi"
@@ -72,7 +73,7 @@ async def test_empty_body():
     async with httpx.AsyncClient() as client:
         response = await client.post(f"{API_URL}/api/games", json={})
     assert response.status_code == 400
-    assert "pgn is required" in response.text
+    assert "pgn or url is required" in response.text
 
 @pytest.mark.asyncio
 async def test_garbage_pgn():

@@ -13,7 +13,8 @@
     "@fastify/sensible": "^5.2.0",
     "chess.js": "^1.0.0-beta.6",
     "fastify": "^4.21.0",
-    "mongodb": "^5.7.0"
+    "mongodb": "^5.7.0",
+    "undici": "^8.5.0"
   },
   "devDependencies": {
     "@types/node": "^20.4.5",
