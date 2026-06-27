@@ -15,6 +15,8 @@ export async function connectDB() {
     
     // Ensure pgnHash index for F08 dedup
     await db.collection('games').createIndex({ pgnHash: 1 }, { unique: true });
+    await db.collection('games').createIndex({ chesscomGameId: 1 }, { unique: true, sparse: true });
+    await db.collection('games').createIndex({ "analysis.status": 1 });
     console.log('Connected to MongoDB');
   }
 }

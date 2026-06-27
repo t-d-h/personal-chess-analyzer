@@ -3,6 +3,7 @@ import { parseAndValidatePgn } from '../services/pgn';
 import { getGamesCollection } from '../services/db';
 import { GameDocument } from '../models/game';
 import { fetchPgnFromUrl } from '../services/chesscom';
+import { getRedis } from '../services/redis';
 
 interface PostGamesBody {
   pgn?: string;
@@ -58,9 +59,8 @@ export default async function (fastify: FastifyInstance) {
     }
 
     const now = new Date();
-    const gameDoc: GameDocument = {
+    const gameDoc: any = {
       source: source,
-      chesscomGameId: chesscomGameId,
       pgn: finalPgn!,
       pgnHash: parsed.pgnHash,
       white: { username: parsed.whiteUsername, rating: parsed.whiteRating },
@@ -82,11 +82,19 @@ export default async function (fastify: FastifyInstance) {
       }
     };
 
+    if (chesscomGameId) {
+      gameDoc.chesscomGameId = chesscomGameId;
+    }
+
     const insertResult = await gamesCollection.insertOne(gameDoc);
+    const gameId = insertResult.insertedId.toString();
+
+    const redis = getRedis();
+    await redis.xadd('chess:analysis-jobs', '*', 'gameId', gameId, 'pgn', finalPgn!);
 
     return reply.status(201).send({
-      gameId: insertResult.insertedId,
-      jobId: insertResult.insertedId,
+      gameId: gameId,
+      jobId: gameId,
       status: 'queued'
     });
   });

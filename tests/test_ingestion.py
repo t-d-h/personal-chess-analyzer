@@ -43,7 +43,7 @@ def db():
     client = MongoClient(MONGO_URL)
     db = client.chess_analyzer
     yield db
-    client.drop_database("chess_analyzer")
+    db.games.delete_many({})
     client.close()
 
 @pytest.mark.asyncio

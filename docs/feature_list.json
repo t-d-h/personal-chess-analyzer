@@ -20,8 +20,8 @@
     "behavior": "Docker Compose brings up Redis and MongoDB. API gateway connects to both at startup and is ready to enqueue jobs (XADD to Redis stream) and persist game documents to MongoDB.",
     "verification": "pytest tests/test_infra.py",
     "design_file": "F03.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "pytest tests/test_infra.py passed"
   },
   {
     "id": "F04",

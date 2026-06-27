@@ -17,6 +17,11 @@
   - Added support for mock testing
   - Handled rate limiting/errors properly
 
+- [x] Implement F03 (Docker Compose and Redis queue setup)
+  - Added redis to docker-compose
+  - Initialized chess:analysis-jobs consumer group on startup
+  - Connected POST /api/games to enqueue XADD tasks
+
 ## In Progress
 - None
 
@@ -24,4 +29,4 @@
 - None
 
 ## Next Steps
-- Implement F03 (Docker Compose and Redis queue setup)
+- Implement F04 (C analyze-service Stockfish FEN evaluation)
