@@ -46,6 +46,7 @@ User will choose a feature in docs/future_list.json and you will start coding us
 
 #### Work Rules
 - Work on one feature at a time
+- If you got any error when running any `make` command, stop implementing new rule, instead fix all the error first.
 - Only start the next feature after the current one passes end-to-end verification
 - Don't "also refactor" feature B while implementing feature A
 - When 1 feature is finished, update relates documents in docs/
@@ -61,12 +62,12 @@ A feature is done only when all of the following are true:
 
 #### At session start (clock in)
 1. Confirm the working directory with `pwd`
-2. Run `make setup` and `make dev` for standard startup and verification path.
+2. Run `make setup` and `make dev` for standard startup and verification path. 
 3. Read docs/PROGRESS.md for current state
 4. Read docs/SESSION-HANDOFF.md to see what changed in the previous session.
 5. Review recent commits with git log --oneline -5
 6. Read docs/decisions/ for important decisions
-7. Run `make check` to confirm repo is in consistent state
+7. Run `make check` to confirm repo is in consistent state. 
 8. Continue from docs/PROGRESS.md "Next Steps" section
 
 #### Before session end (clock out)
@@ -77,7 +78,8 @@ A feature is done only when all of the following are true:
 5. Record any unresolved risk or blocker.
 6. Update docs/SESSION-HANDOFF.md
 7. Leave the repo clean enough for the next session to run `make setup` and `make dev` immediately.
-8. Commit with a descriptive message once the work is in a safe state. 
+8. Run `make stop` to stop dev server.
+9. Commit with a descriptive message once the work is in a safe state. 
 
 #### Hard Constraints
 - All PRs must pass pytest + mypy --strict + ruff check

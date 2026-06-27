@@ -91,30 +91,34 @@ build-frontend: ## Build the React frontend for production
 dev: infra-up ## Start full dev stack (infra + API gateway + frontend)
 	@echo "==> Starting dev services..."
 	@if [ -f $(API_SRC)/package.json ]; then \
-	  echo "  Starting API gateway on :8080 ..."; \
-	  cd $(API_SRC) && npm run dev & \
+	  echo "  Starting API gateway on :18080 ..."; \
+	  cd $(API_SRC) && PORT=18080 npm run dev & echo $$! > $(CURDIR)/.api.pid; \
 	else \
 	  echo "  SKIP: API gateway source not found yet"; \
 	fi
 	@if [ -f $(FRONTEND_SRC)/package.json ]; then \
 	  echo "  Starting frontend on :3000 ..."; \
-	  cd $(FRONTEND_SRC) && npm run dev & \
+	  cd $(FRONTEND_SRC) && npm run dev & echo $$! > $(CURDIR)/.frontend.pid; \
 	else \
 	  echo "  SKIP: Frontend source not found yet"; \
 	fi
 	@echo "==> Dev stack running. Press Ctrl-C to stop background processes."
-	@echo "    API:      http://localhost:8080"
+	@echo "    API:      http://localhost:18080"
 	@echo "    Frontend: http://localhost:3000"
 	@wait
 
 stop: ## Stop background dev processes (API + frontend)
-	@pkill -f "$(API_SRC)" 2>/dev/null || true
-	@pkill -f "$(FRONTEND_SRC)" 2>/dev/null || true
+	@if [ -f .api.pid ]; then kill $$(cat .api.pid) 2>/dev/null || true; rm -f .api.pid; fi
+	@if [ -f .frontend.pid ]; then kill $$(cat .frontend.pid) 2>/dev/null || true; rm -f .frontend.pid; fi
+	@pkill -f "node.*$(API_SRC)" 2>/dev/null || true
+	@pkill -f "node.*$(FRONTEND_SRC)" 2>/dev/null || true
+	@fuser -k 18080/tcp 2>/dev/null || true
+	@fuser -k 3000/tcp 2>/dev/null || true
 	docker compose stop redis mongodb
 	@echo "==> Dev stack stopped."
 
 # ─── Test ─────────────────────────────────────────────────────────────────────
-test: ## Run all Python/pytest tests
+test: build-analyze ## Run all Python/pytest tests
 	pytest tests/ -v
 
 test-analyze-single: build-analyze ## Run standalone single-position Stockfish analysis (F04)
