@@ -18,4 +18,7 @@ stop:
 test:
 	venv/bin/pytest tests/
 
-check: test
+test-analyze-single:
+	cd analyze-service && make test-single
+
+check: test test-analyze-single

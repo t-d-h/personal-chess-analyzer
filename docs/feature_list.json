@@ -28,8 +28,8 @@
     "behavior": "C analyze-service can spawn a Stockfish subprocess over UCI, analyze a single position (FEN), and return the centipawn evaluation and best move. Verified by a standalone CLI tool.",
     "verification": "make test-analyze-single",
     "design_file": "F04.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "make test-analyze-single passed"
   },
   {
     "id": "F05",

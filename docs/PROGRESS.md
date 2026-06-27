@@ -2,7 +2,7 @@
 
 ## Current State
 - Latest commit: (to be created)
-- Test status: passing (pytest tests/test_ingestion.py)
+- Test status: passing (make check)
 - Lint: N/A
 
 ## Completed
@@ -22,6 +22,10 @@
   - Initialized chess:analysis-jobs consumer group on startup
   - Connected POST /api/games to enqueue XADD tasks
 
+- [x] Implement F04 (C analyze-service Stockfish FEN evaluation)
+  - Created C CLI tool `analyze-single` to spawn Stockfish via UCI.
+  - Implemented UCI info and bestmove parsing for centipawn evaluation.
+
 ## In Progress
 - None
 
@@ -29,4 +33,4 @@
 - None
 
 ## Next Steps
-- Implement F04 (C analyze-service Stockfish FEN evaluation)
+- Implement F05 (C analyze-service full game loop and move classification)
