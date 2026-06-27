@@ -4,8 +4,8 @@
     "behavior": "POST /api/games with a raw PGN body returns 201 with gameId and parsed metadata (players, ratings, timeControl, result, ecoCode, playedAt). Malformed PGN returns 400.",
     "verification": "pytest tests/test_ingestion.py",
     "design_file": "F01.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "pytest tests/test_ingestion.py passed"
   },
   {
     "id": "F02",
