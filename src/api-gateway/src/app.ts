@@ -2,6 +2,7 @@ import fastify from 'fastify';
 import cors from '@fastify/cors';
 import sensible from '@fastify/sensible';
 import gamesRoutes from './routes/games';
+import jobsRoutes from './routes/jobs';
 import { connectDB } from './services/db';
 import { connectRedis } from './services/redis';
 
@@ -15,6 +16,7 @@ export async function buildApp() {
   await connectRedis();
 
   await app.register(gamesRoutes);
+  await app.register(jobsRoutes);
 
   // Healthcheck
   app.get('/health', async () => {
@@ -23,3 +25,4 @@ export async function buildApp() {
 
   return app;
 }
+

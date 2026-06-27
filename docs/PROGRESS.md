@@ -38,6 +38,13 @@
   - Added live progress updates using Redis HSET hash with TTL.
   - Wrote integration tests covering success and failure execution paths.
 
+- [x] Implement F07 (GET /api/jobs/:jobId and GET /api/games/:gameId endpoints)
+  - Implemented GET /api/jobs/:jobId reading live progress from Redis hash.
+  - Implemented GET /api/games/:gameId fetching game metadata with MongoDB projection.
+  - Implemented GET /api/games/:gameId/analysis returning moves/playerSummaries on completion and 409/500 otherwise.
+  - Added robust validation and live fallback logic.
+  - Wrote integration tests covering all scenarios in tests/test_api.py.
+
 ## In Progress
 - None
 
@@ -45,5 +52,6 @@
 - None
 
 ## Next Steps
-- Implement F07 (GET /api/jobs/:jobId and GET /api/games/:gameId endpoints)
+- Implement F08 (POST /api/games deduplication)
+
 

@@ -1,33 +1,25 @@
 # Session Handoff
 
 ## Current State
-- F06 (C analyze-service Redis queue consumer and MongoDB persistence) is fully completed. A concurrent C service runs as a daemon consuming jobs from Redis stream `chess:analysis-jobs`, reports progress to Redis, saves results to MongoDB, and acknowledges jobs.
+- F07 (GET /api/jobs/:jobId, GET /api/games/:gameId, and GET /api/games/:gameId/analysis endpoints) is fully completed.
 
 ## What Changed (this session)
-- Implemented hiredis helper (`redis_conn.c`/`redis_conn.h`) to connect and parse `redis://` connection URIs.
-- Implemented MongoDB update helper (`mongo_conn.c`/`mongo_conn.h`) using `libbson` to build raw BSON subdocuments (`$set`) directly in memory.
-- Implemented worker daemon thread loop (`worker.c`/`worker.h`) which:
-  - Runs `XAUTOCLAIM` on startup to reclaim idle pending tasks.
-  - Runs `XREADGROUP` to receive new analysis jobs.
-  - Spawns Stockfish and `pgn_to_fens.js` dynamically (working directory agnostic via `access` check).
-  - Performs the N+1 analysis loop.
-  - Updates a Redis hash for live progress monitoring with a TTL (3600s during run, 300s on finish/fail).
-  - Updates MongoDB game document on success (`completed`) or failure (`failed`).
-  - Calls `XACK` only after database persistence.
-- Implemented `main_worker.c` entrypoint which parses concurrency (defaults to 2) and thread-safe MongoDB pools.
-- Added comprehensive integration tests (`tests/test_analyze_service.py`) covering both successful analysis of a game (Scholar's Mate) and failed analysis handling (invalid PGN tasks), verifying progress hash transitions, TTLs, and acknowledgment states.
-- Integrated `analyze-worker` compilation and test execution into the main workspace `Makefile` (`make check`).
+- Created the new Fastify route file `src/api-gateway/src/routes/jobs.ts` for monitoring job progress from the Redis hash.
+- Updated `src/api-gateway/src/routes/games.ts` with metadata fetching (using MongoDB projection) and analysis retrieval endpoints.
+- Registered the new jobs router in `src/api-gateway/src/app.ts`.
+- Configured the API gateway to initialize a progress hash in Redis under the `queued` state when a game is first enqueued.
+- Wrote integration tests in `tests/test_api.py` covering all GET scenarios (success, not found, running with/without Redis hash, and failure cases).
+- Confirmed that `make check` compiles the worker and all 26 tests pass successfully.
 
 ## Key Design Decisions
-- **Raw BSON Builder API**: Built `$set` document dynamically using raw `bson_append_array` / `bson_append_document_begin` which avoids Extended JSON parser serialization issues and formats timestamps/dates correctly.
-- **Directory Agnostic Node Resolution**: The worker uses `access` to check if it's running from root (`analyze-service/...`) or within `analyze-service` (`tools/...`) to locate `pgn_to_fens.js`.
-- **Stream Cleanup Isolation**: Pytest integration tests use `xtrim` with `maxlen=0` instead of `delete` on the stream key. This preserves the consumer groups, avoiding worker NOGROUP exceptions.
+- **Avoid 404 on Queued Jobs**: The API gateway writes the progress hash to Redis at creation time in `POST /api/games`, preventing early clients from receiving a 404 when polling for enqueued jobs that have not been picked up by the worker yet.
+- **Fallbacks to DB on progress lookup**: When retrieving analysis, if the job is still enqueued or running, we try to fetch live progress from the Redis progress hash first. If Redis has expired or has no progress hash, we fallback to MongoDB status/progress values to ensure a robust response.
 
 ## Environment / Running Tests
 - `make setup` installs dependencies.
 - `make dev` starts containers and local API server.
 - `make stop` stops local API server and tears down containers.
-- `make check` compiles the C worker and verifies all tests (18 tests total) pass successfully.
+- `make check` compiles the C worker and verifies all tests (26 tests total) pass successfully.
 
 ## Next Steps
-- Implement F07 (GET /api/jobs/:jobId and GET /api/games/:gameId endpoints).
+- Implement F08 (POST /api/games deduplication).

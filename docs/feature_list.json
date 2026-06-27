@@ -52,8 +52,8 @@
     "behavior": "GET /api/jobs/:jobId returns live progress (status, movesAnalyzed, movesTotal) read from the Redis hash. GET /api/games/:gameId returns metadata. GET /api/games/:gameId/analysis returns the full move list and player summaries once status=todo, or 409 while still running.",
     "verification": "pytest tests/test_api.py",
     "design_file": "F07.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "pytest tests/test_api.py passed"
   },
   {
     "id": "F08",
