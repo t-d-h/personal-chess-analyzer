@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 
 const CHESSCOM_URL_RE =
-  /^https?:\/\/(?:www\.)?chess\.com\/(?:game\/(?:live|daily)|analysis\/game\/(?:live|daily))\/([A-Za-z0-9]+)/;
+  /^https?:\/\/(?:www\.)?chess\.com\/(?:game|analysis\/game)\/(?:(?:live|daily)\/)?([A-Za-z0-9]+)/;
 
 const CHESSCOM_API_TIMEOUT_MS = 5000;
 

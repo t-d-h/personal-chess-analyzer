@@ -52,6 +52,15 @@ class TestChesscomUrlIngestion:
         assert "gameId" in body
         assert body["status"] == "queued"
 
+    def test_valid_chesscom_plain_url_returns_201(
+        self, client: httpx.Client
+    ) -> None:
+        resp = client.post(
+            "/api/games",
+            json={"url": "https://www.chess.com/game/170638222548"},
+        )
+        assert resp.status_code == 201, resp.text
+
     def test_valid_chesscom_daily_url_returns_201(
         self, client: httpx.Client
     ) -> None:
