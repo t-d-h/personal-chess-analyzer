@@ -1,6 +1,7 @@
 #include "uci.h"
 
 #include <errno.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +11,40 @@
 #include <unistd.h>
 
 static const char *DEFAULT_STOCKFISH = "stockfish";
+
+static int sf_read_line_raw(StockfishProc *sf, char *buf, size_t len, int timeout_ms)
+{
+    size_t pos = 0;
+    int got_any = 0;
+
+    while (pos < len - 1) {
+        if (sf->read_buf_pos >= sf->read_buf_len) {
+            struct pollfd pfd = { .fd = sf->stdout_fd, .events = POLLIN };
+            int remaining = got_any ? 5000 : timeout_ms;
+            int ready = poll(&pfd, 1, remaining);
+            if (ready <= 0) {
+                if (got_any) break;
+                return -1;
+            }
+            ssize_t nr = read(sf->stdout_fd, sf->read_buf, SF_READ_BUF_LEN);
+            if (nr <= 0) {
+                if (nr < 0 && errno == EINTR) continue;
+                break;
+            }
+            sf->read_buf_len = (int)nr;
+            sf->read_buf_pos = 0;
+        }
+
+        char ch = sf->read_buf[sf->read_buf_pos++];
+        got_any = 1;
+        if (ch == '\n') {
+            break;
+        }
+        buf[pos++] = ch;
+    }
+    buf[pos] = '\0';
+    return got_any ? 0 : -1;
+}
 
 int sf_spawn(StockfishProc *sf, const char *path)
 {
@@ -36,9 +71,12 @@ int sf_spawn(StockfishProc *sf, const char *path)
         dup2(stdout_pipe[1], STDOUT_FILENO);
         close(stdin_pipe[0]);
         close(stdout_pipe[1]);
+        setpgid(0, 0);
         execlp(path, path, (char *)NULL);
         _exit(127);
     }
+
+    setpgid(pid, pid);
 
     close(stdin_pipe[0]);
     close(stdout_pipe[1]);
@@ -46,15 +84,10 @@ int sf_spawn(StockfishProc *sf, const char *path)
     sf->pid = pid;
     sf->stdin_fd = stdin_pipe[1];
     sf->stdout_fd = stdout_pipe[0];
-    sf->out_stream = fdopen(stdout_pipe[0], "r");
-    if (!sf->out_stream) {
-        perror("fdopen");
-        close(stdout_pipe[0]);
-        close(stdin_pipe[1]);
-        kill(pid, SIGKILL);
-        waitpid(pid, NULL, 0);
-        return -1;
-    }
+    sf->move_timeout_ms = DEFAULT_MOVE_TIMEOUT_MS;
+    sf->read_buf_pos = 0;
+    sf->read_buf_len = 0;
+    sf->out_stream = NULL;
 
     return 0;
 }
@@ -62,45 +95,48 @@ int sf_spawn(StockfishProc *sf, const char *path)
 void sf_send(StockfishProc *sf, const char *cmd)
 {
     size_t len = strlen(cmd);
-    ssize_t r;
-    r = write(sf->stdin_fd, cmd, len);
-    r = write(sf->stdin_fd, "\n", 1);
-    (void)r;
-}
-
-static char *fgets_retry(char *str, int n, FILE *stream)
-{
-    char *res;
-    while (1) {
-        res = fgets(str, n, stream);
-        if (res == NULL) {
-            if (ferror(stream) && errno == EINTR) {
-                clearerr(stream);
-                continue;
-            }
+    while (len > 0) {
+        ssize_t w = write(sf->stdin_fd, cmd, len);
+        if (w < 0) {
+            if (errno == EINTR) continue;
+            break;
         }
-        break;
+        cmd += w;
+        len -= (size_t)w;
     }
-    return res;
+    const char *nl = "\n";
+    size_t nl_len = 1;
+    while (nl_len > 0) {
+        ssize_t w = write(sf->stdin_fd, nl, nl_len);
+        if (w < 0) {
+            if (errno == EINTR) continue;
+            break;
+        }
+        nl += w;
+        nl_len -= (size_t)w;
+    }
 }
 
 int sf_read_until(StockfishProc *sf, const char *prefix, char *buf, size_t len)
 {
     size_t prefix_len = strlen(prefix);
-    while (fgets_retry(buf, (int)len, sf->out_stream)) {
+    while (sf_read_line_raw(sf, buf, len, 5000) == 0) {
         if (strncmp(buf, prefix, prefix_len) == 0) {
-            size_t blen = strlen(buf);
-            if (blen > 0 && buf[blen - 1] == '\n') buf[blen - 1] = '\0';
             return 0;
         }
     }
     return -1;
 }
 
+int sf_read_line_timeout(StockfishProc *sf, char *buf, size_t len, int timeout_ms)
+{
+    return sf_read_line_raw(sf, buf, len, timeout_ms);
+}
+
 void sf_kill(StockfishProc *sf)
 {
     if (sf->pid > 0) {
-        kill(sf->pid, SIGTERM);
+        kill(-sf->pid, SIGKILL);
         waitpid(sf->pid, NULL, 0);
         sf->pid = 0;
     }
@@ -112,7 +148,12 @@ void sf_kill(StockfishProc *sf)
         close(sf->stdin_fd);
         sf->stdin_fd = 0;
     }
-    sf->stdout_fd = 0;
+    if (sf->stdout_fd > 0) {
+        close(sf->stdout_fd);
+        sf->stdout_fd = 0;
+    }
+    sf->read_buf_pos = 0;
+    sf->read_buf_len = 0;
 }
 
 static int parse_score(const char *info_line, EvalResult *result)
@@ -201,7 +242,13 @@ int sf_analyze_fen(StockfishProc *sf, const char *fen, int depth, int multipv, E
     sf_send(sf, cmd);
 
     int done = 0;
-    while (fgets_retry(line, sizeof(line), sf->out_stream)) {
+    int timeout_ms = sf->move_timeout_ms > 0 ? sf->move_timeout_ms : DEFAULT_MOVE_TIMEOUT_MS;
+
+    while (1) {
+        if (sf_read_line_timeout(sf, line, sizeof(line), timeout_ms) < 0) {
+            return -1;
+        }
+
         if (strncmp(line, "bestmove", 8) == 0) {
             if (out[0].best_move[0] == '\0') {
                 parse_bestmove(line, &out[0]);

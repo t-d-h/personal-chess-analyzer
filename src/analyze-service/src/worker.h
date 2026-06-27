@@ -9,6 +9,7 @@
 #define CONSUMER_GROUP "workers"
 #define MAX_WORKERS 16
 #define BLOCK_MS 5000
+#define JOB_TIMEOUT_SECS 300
 
 typedef struct {
     RedisConn *redis;
@@ -17,6 +18,7 @@ typedef struct {
     const char *tools_dir;
     const char *stockfish_path;
     int engine_depth;
+    int job_timeout_secs;
 } WorkerCtx;
 
 void *worker_thread(void *arg);

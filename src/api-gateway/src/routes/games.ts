@@ -131,6 +131,11 @@ export async function gamesRoutes(app: FastifyInstance): Promise<void> {
           throw err;
         }
 
+        const PGN_MAX_BYTES = 512 * 1024;
+        if (Buffer.byteLength(fetchResult.pgn, "utf8") > PGN_MAX_BYTES) {
+          return reply.code(400).send({ error: "PGN too large (max 512KB)" });
+        }
+
         const existing = await findExisting(parsed.pgnHash, fetchResult.gameId);
         if (existing) {
           return sendCached(reply, existing);
@@ -191,6 +196,11 @@ export async function gamesRoutes(app: FastifyInstance): Promise<void> {
       // ── F01: PGN paste path ─────────────────────────────────────────────
       if (typeof body.pgn !== "string") {
         return reply.code(400).send({ error: "pgn is required" });
+      }
+
+      const PGN_MAX_BYTES = 512 * 1024;
+      if (Buffer.byteLength(body.pgn, "utf8") > PGN_MAX_BYTES) {
+        return reply.code(400).send({ error: "PGN too large (max 512KB)" });
       }
 
       let parsed;

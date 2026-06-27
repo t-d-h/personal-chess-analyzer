@@ -222,6 +222,9 @@ def api_server(mock_chesscom_url: str):  # type: ignore[type-arg]
         "LOG_LEVEL": "warn",
         "NODE_ENV": "test",
         "CHESSCOM_API_BASE": mock_chesscom_url,
+        "TRUST_PROXY": "1",
+        "RATE_LIMIT_MAX": "1000",
+        "RATE_LIMIT_WINDOW": "60000",
     }
 
     proc = subprocess.Popen(

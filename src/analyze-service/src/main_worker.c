@@ -15,6 +15,7 @@ int main(int argc, char *argv[])
     const char *sf_path     = getenv("STOCKFISH_PATH");
     const char *conc_env    = getenv("WORKER_CONCURRENCY");
     const char *depth_env   = getenv("ENGINE_DEPTH");
+    const char *job_timeout_env = getenv("JOB_TIMEOUT");
 
     if (!redis_url)  redis_url = "redis://localhost:6379";
     if (!mongo_url)  mongo_url = "mongodb://localhost:27017";
@@ -26,12 +27,15 @@ int main(int argc, char *argv[])
     int engine_depth = depth_env ? atoi(depth_env) : 18;
     if (engine_depth < 1) engine_depth = 18;
 
+    int job_timeout = job_timeout_env ? atoi(job_timeout_env) : JOB_TIMEOUT_SECS;
+    if (job_timeout < 1) job_timeout = JOB_TIMEOUT_SECS;
+
     fprintf(stderr, "[main] Starting chess-analyze-worker\n");
     fprintf(stderr, "[main] REDIS_URL=%s  MONGO_URL=%s  MONGO_DB=%s\n",
             redis_url, mongo_url, mongo_db);
-    fprintf(stderr, "[main] Concurrency=%d  Engine depth=%d  Stockfish=%s\n",
+    fprintf(stderr, "[main] Concurrency=%d  Engine depth=%d  Stockfish=%s  Job timeout=%ds\n",
             concurrency, engine_depth,
-            sf_path ? sf_path : "(default)");
+            sf_path ? sf_path : "(default)", job_timeout);
 
     /* Connect to Redis */
     RedisConn redis;
@@ -59,6 +63,7 @@ int main(int argc, char *argv[])
         contexts[i].tools_dir   = "";
         contexts[i].stockfish_path = sf_path ? sf_path : "stockfish";
         contexts[i].engine_depth  = engine_depth;
+        contexts[i].job_timeout_secs = job_timeout;
 
         if (pthread_create(&threads[i], NULL, worker_thread, &contexts[i]) != 0) {
             fprintf(stderr, "[main] FATAL: pthread_create failed for worker %d\n", i);

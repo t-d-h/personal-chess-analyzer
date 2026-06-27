@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -124,7 +125,8 @@ static int pgn_to_fens(const char *pgn, char *fens_buf, size_t buf_size, int *ou
 
 /* ── Subprocess: FEN list → analysis JSON via analyze-game ─────────────── */
 
-static int run_analyze_game(const char *fens_data, char *json_buf, size_t buf_size)
+static int run_analyze_game(const char *fens_data, char *json_buf, size_t buf_size,
+                            int timeout_secs)
 {
     (void)fens_data;  /* stdin provides FENs */
 
@@ -176,8 +178,30 @@ static int run_analyze_game(const char *fens_data, char *json_buf, size_t buf_si
     }
     close(fdin[1]);
 
+    time_t start = time(NULL);
     size_t pos = 0;
     while (pos < buf_size - 1) {
+        int remaining_ms = -1;
+        if (timeout_secs > 0) {
+            time_t elapsed = time(NULL) - start;
+            if (elapsed >= (time_t)timeout_secs) {
+                kill(pid, SIGKILL);
+                waitpid(pid, NULL, 0);
+                close(fdout[0]);
+                return -2;
+            }
+            remaining_ms = (int)((time_t)timeout_secs - elapsed) * 1000;
+            if (remaining_ms < 100) remaining_ms = 100;
+        }
+
+        struct pollfd pfd = { .fd = fdout[0], .events = POLLIN };
+        int ready = poll(&pfd, 1, remaining_ms);
+        if (ready < 0) {
+            if (errno == EINTR) continue;
+            break;
+        }
+        if (ready == 0) continue;
+
         ssize_t nr = read(fdout[0], json_buf + pos, buf_size - pos - 1);
         if (nr < 0) {
             if (errno == EINTR) continue;
@@ -253,7 +277,18 @@ static int process_job(WorkerCtx *ctx, const char *entry_id,
     progress_set(ctx->redis, game_id, "running", 0, fen_count - 1, NULL);
 
     char json_buf[512 * 1024];
-    if (run_analyze_game(fens_buf, json_buf, sizeof(json_buf)) < 0) {
+    int rc = run_analyze_game(fens_buf, json_buf, sizeof(json_buf),
+                              ctx->job_timeout_secs);
+    if (rc == -2) {
+        fprintf(stderr, "[worker-%d] job timed out for %s\n",
+                ctx->worker_id, game_id);
+        progress_set(ctx->redis, game_id, "failed", 0, fen_count - 1,
+                     "job timed out after 5 minutes");
+        mongo_update_analysis(ctx->mongo, game_id, "[]", fen_count - 1,
+                              "failed", "job timed out after 5 minutes");
+        return 0;
+    }
+    if (rc < 0) {
         fprintf(stderr, "[worker-%d] analyze-game failed for %s\n",
                 ctx->worker_id, game_id);
         progress_set(ctx->redis, game_id, "failed", 0, fen_count - 1, "engine error");

@@ -7,6 +7,7 @@ const MONGO_URL = process.env["MONGO_URL"] ?? "mongodb://localhost:27017";
 const MONGO_DB = process.env["MONGO_DB"] ?? "chess_analyzer";
 const REDIS_URL = process.env["REDIS_URL"] ?? "redis://localhost:6379";
 const LOG_LEVEL = process.env["LOG_LEVEL"] ?? "info";
+const TRUST_PROXY = process.env["TRUST_PROXY"] === "1";
 
 async function main() {
   await connectDb(MONGO_URL, MONGO_DB);
@@ -14,6 +15,7 @@ async function main() {
 
   const app = buildApp({
     logger: { level: LOG_LEVEL },
+    trustProxy: TRUST_PROXY,
   });
 
   try {

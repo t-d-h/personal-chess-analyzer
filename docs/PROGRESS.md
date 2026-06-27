@@ -1,8 +1,8 @@
 # Project Progress
 
 ## Current State
-- Latest commit: F06/F09 — Stream consumer and Frontend UI integration
-- Test status: 59/59 passing (`pytest tests/`); `make test-analyze-single` passing; `make test-analyze-game` passing
+- Latest commit: F10 — Hardening (rate limiting, input size guards, engine timeouts)
+- Test status: 66/66 passing (`pytest tests/`); `make test-analyze-single` passing; `make test-analyze-game` passing
 - Lint: tsc --noEmit clean (0 errors); C compiles with -Wall -Wextra zero warnings
 - F06 worker (analyze-worker) binary built and compiles clean with pkg-config
 
@@ -18,6 +18,7 @@
 - [x] F07 — Remaining API endpoints (GET jobs/:id, GET games/:id, GET games/:id/analysis) — 13/13 tests passing
 - [x] F08 — Caching / Deduplication (pgnHash + chesscomGameId dedup, 200 cached:true) — 7/7 tests passing
 - [x] F09 — Frontend — React + TypeScript UI — 7/7 E2E tests passing
+- [x] F10 — Hardening (rate limiting, PGN size limits, engine timeouts) — 7/7 tests passing
 
 ## In Progress
 - None
@@ -30,4 +31,4 @@
 - chesscomGameId unique sparse index requires dropping the old non-unique index on first startup; `db.ts` handles this automatically.
 
 ## Next Steps
-- F10: Hardening — rate limiting, PGN size limits, engine timeouts
+- All planned features (F01-F10) are complete.

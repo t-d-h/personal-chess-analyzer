@@ -76,7 +76,7 @@
     "behavior": "POST /api/games enforces IP-based rate limiting. PGNs exceeding 300 plies or the max file size limit are rejected with 400. The C analyze-service enforces a per-move engine timeout (5s) with automatic Stockfish restart, and a per-job overall timeout (5min) that marks the job failed and XACK-s the stream entry.",
     "verification": "pytest tests/test_hardening.py",
     "design_file": "F10.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "7 passed in 8.53s — pytest tests/test_hardening.py -v; 66 passed total; make check → All checks passed (2026-06-27)"
   }
 ]

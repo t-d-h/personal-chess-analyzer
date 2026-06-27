@@ -6,6 +6,7 @@
 #include <string.h>
 #include <math.h>
 #include <errno.h>
+#include <limits.h>
 
 #define MAX_FENS (MAX_PLY + 10)
 #define MAX_LINE 512
@@ -26,6 +27,29 @@ static char *fgets_retry(char *str, int n, FILE *stream)
         break;
     }
     return res;
+}
+
+static int sf_ensure_ready(StockfishProc *sf)
+{
+    char buf[SF_LINE_LEN];
+    sf_send(sf, "uci");
+    if (sf_read_until(sf, "uciok", buf, sizeof(buf)) < 0) return -1;
+    sf_send(sf, "isready");
+    if (sf_read_until(sf, "readyok", buf, sizeof(buf)) < 0) return -1;
+    return 0;
+}
+
+static int sf_restart(StockfishProc *sf, const char *path)
+{
+    int saved_timeout = sf->move_timeout_ms;
+    sf_kill(sf);
+    if (sf_spawn(sf, path) < 0) return -1;
+    sf->move_timeout_ms = saved_timeout;
+    if (sf_ensure_ready(sf) < 0) {
+        sf_kill(sf);
+        return -1;
+    }
+    return 0;
 }
 
 static int read_fens(FILE *in, char fens[][256], int max)
@@ -138,10 +162,14 @@ int main(int argc, char *argv[])
     memset(&sf, 0, sizeof(sf));
 
     const char *sf_path = getenv("STOCKFISH_PATH");
+
     if (sf_spawn(&sf, sf_path) < 0) {
         fprintf(stderr, "Error: failed to spawn stockfish\n");
         return 1;
     }
+
+    const char *move_timeout_env = getenv("MOVE_TIMEOUT_MS");
+    if (move_timeout_env) sf.move_timeout_ms = atoi(move_timeout_env);
 
     char buf[SF_LINE_LEN];
     sf_send(&sf, "uci");
@@ -189,7 +217,73 @@ int main(int argc, char *argv[])
         const char *fen_after = fens[i + 1];
 
         EvalResult results[MULTI_PV];
-        sf_analyze_fen(&sf, fen_before, depth, MULTI_PV, results);
+        int analyze_rc = sf_analyze_fen(&sf, fen_before, depth, MULTI_PV, results);
+
+        if (analyze_rc < 0) {
+            fprintf(stderr, "[analyze-game] move %d: engine timeout, restarting Stockfish\n", ply);
+
+            const char *restart_path = getenv("STOCKFISH_PATH");
+            if (sf_restart(&sf, restart_path) < 0) {
+                fprintf(stderr, "[analyze-game] FATAL: could not restart Stockfish after timeout\n");
+                sf_kill(&sf);
+                return 1;
+            }
+
+            if (i > 0) printf(",\n");
+            printf("    {\n");
+            printf("      \"ply\": %d,\n", ply);
+            printf("      \"color\": \"%s\",\n", color);
+            if (sans[i][0])
+                printf("      \"san\": \"%s\",\n", sans[i]);
+            else
+                printf("      \"san\": \"\",\n");
+            printf("      \"fenBefore\": \"%s\",\n", fen_before);
+            printf("      \"fenAfter\": \"%s\",\n", fen_after);
+            printf("      \"evalCpPlayed\": null,\n");
+            printf("      \"evalCpBest\": null,\n");
+            printf("      \"evalMate\": null,\n");
+            printf("      \"bestMoveUci\": \"\",\n");
+            printf("      \"winPercentLoss\": 0.0,\n");
+            printf("      \"moveAccuracy\": 0.0,\n");
+            printf("      \"classification\": \"inaccuracy\",\n");
+            printf("      \"engineDepth\": 0\n");
+            printf("    }");
+
+            MoveResult *m = &analysis.moves[i];
+            m->ply = ply;
+            snprintf(m->color, sizeof(m->color), "%s", color);
+            if (sans[i][0]) {
+                size_t slen = strlen(sans[i]);
+                if (slen >= sizeof(m->san)) slen = sizeof(m->san) - 1;
+                memcpy(m->san, sans[i], slen);
+                m->san[slen] = '\0';
+            }
+            {
+                size_t flen = strlen(fen_before);
+                if (flen >= sizeof(m->fen_before)) flen = sizeof(m->fen_before) - 1;
+                memcpy(m->fen_before, fen_before, flen);
+                m->fen_before[flen] = '\0';
+            }
+            {
+                size_t flen = strlen(fen_after);
+                if (flen >= sizeof(m->fen_after)) flen = sizeof(m->fen_after) - 1;
+                memcpy(m->fen_after, fen_after, flen);
+                m->fen_after[flen] = '\0';
+            }
+            m->eval_cp_played = INT_MIN;
+            m->eval_cp_best = INT_MIN;
+            m->is_mate_played = 0;
+            m->mate_in_played = 0;
+            m->is_mate_best = 0;
+            m->mate_in_best = 0;
+            m->best_move_san[0] = '\0';
+            m->win_percent_loss = 0.0;
+            m->move_accuracy = 0.0;
+            m->classification = CLASS_INACCURACY;
+            m->engine_depth = 0;
+            m->is_capture = (i < num_moves) ? captures[i] : 0;
+            continue;
+        }
 
         int is_white = (ply % 2 == 1);
 
