@@ -16,6 +16,7 @@ stop:
 	docker compose down
 
 test:
+	cd analyze-service && make build-worker
 	venv/bin/pytest tests/
 
 test-analyze-single:

@@ -32,6 +32,12 @@
   - Created `main_game.c` implementing an N+1 position analysis loop with a single long-lived Stockfish process.
   - Wired up verification script (`check_output.py`) using a Scholar's Mate reference game.
 
+- [x] Implement F06 (C analyze-service Redis queue consumer and MongoDB persistence)
+  - Implemented hiredis and libmongoc connections.
+  - Implemented stream worker polling XREADGROUP/XAUTOCLAIM and XACK only after DB updates.
+  - Added live progress updates using Redis HSET hash with TTL.
+  - Wrote integration tests covering success and failure execution paths.
+
 ## In Progress
 - None
 
@@ -39,5 +45,5 @@
 - None
 
 ## Next Steps
-- Implement F06 (C analyze-service Redis queue consumer and MongoDB persistence)
+- Implement F07 (GET /api/jobs/:jobId and GET /api/games/:gameId endpoints)
 

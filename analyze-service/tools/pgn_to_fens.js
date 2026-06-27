@@ -11,11 +11,20 @@ function main() {
 
     const pgnFile = args[0];
     let pgnContent;
-    try {
-        pgnContent = fs.readFileSync(pgnFile, 'utf8');
-    } catch (err) {
-        console.error(`Failed to read file ${pgnFile}: ${err.message}`);
-        process.exit(1);
+    if (pgnFile === '-') {
+        try {
+            pgnContent = fs.readFileSync(0, 'utf8');
+        } catch (err) {
+            console.error(`Failed to read stdin: ${err.message}`);
+            process.exit(1);
+        }
+    } else {
+        try {
+            pgnContent = fs.readFileSync(pgnFile, 'utf8');
+        } catch (err) {
+            console.error(`Failed to read file ${pgnFile}: ${err.message}`);
+            process.exit(1);
+        }
     }
 
     const chess = new Chess();
