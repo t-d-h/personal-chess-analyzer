@@ -21,4 +21,8 @@ test:
 test-analyze-single:
 	cd analyze-service && make test-single
 
-check: test test-analyze-single
+test-analyze-game:
+	cd analyze-service && make test-game
+
+check: test test-analyze-single test-analyze-game
+

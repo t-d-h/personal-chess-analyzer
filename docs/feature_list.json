@@ -36,8 +36,8 @@
     "behavior": "C analyze-service loops over every move in a game PGN, computes per-move win% loss, accuracy score, and classification (best/excellent/good/inaccuracy/mistake/blunder/brilliant/book), and prints a correct move-by-move table for a known reference game.",
     "verification": "make test-analyze-game",
     "design_file": "F05.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "make test-analyze-game passed"
   },
   {
     "id": "F06",

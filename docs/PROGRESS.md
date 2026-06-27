@@ -26,6 +26,12 @@
   - Created C CLI tool `analyze-single` to spawn Stockfish via UCI.
   - Implemented UCI info and bestmove parsing for centipawn evaluation.
 
+- [x] Implement F05 (C analyze-service full game loop and move classification)
+  - Created `tools/pgn_to_fens.js` to parse PGNs into plies with FENs and UCI-to-SAN legal move mappings.
+  - Implemented `analyzer.c` for win%, accuracy decay, and centipawn-loss move classification.
+  - Created `main_game.c` implementing an N+1 position analysis loop with a single long-lived Stockfish process.
+  - Wired up verification script (`check_output.py`) using a Scholar's Mate reference game.
+
 ## In Progress
 - None
 
@@ -33,4 +39,5 @@
 - None
 
 ## Next Steps
-- Implement F05 (C analyze-service full game loop and move classification)
+- Implement F06 (C analyze-service Redis queue consumer and MongoDB persistence)
+
