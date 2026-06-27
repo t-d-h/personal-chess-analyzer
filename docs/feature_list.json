@@ -4,79 +4,79 @@
     "behavior": "POST /api/games with a raw PGN body returns 201 with gameId and parsed metadata (players, ratings, timeControl, result, ecoCode, playedAt). Malformed PGN returns 400.",
     "verification": "pytest tests/test_ingestion.py",
     "design_file": "F01.md",
-    "state": "completed",
-    "evidence": "11 passed in 0.14s — pytest tests/test_ingestion.py -v (2026-06-26)"
+    "state": "todo",
+    "evidence": ""
   },
   {
     "id": "F02",
     "behavior": "POST /api/games with a chess.com game URL fetches the PGN from the chess.com public API, then behaves identically to F01. Invalid or non-chess.com URLs return 400.",
     "verification": "pytest tests/test_chesscom.py",
     "design_file": "F02.md",
-    "state": "completed",
-    "evidence": "8 passed in 7.37s — pytest tests/test_chesscom.py -v (2026-06-26)"
+    "state": "todo",
+    "evidence": ")"
   },
   {
     "id": "F03",
     "behavior": "Docker Compose brings up Redis and MongoDB. API gateway connects to both at startup and is ready to enqueue jobs (XADD to Redis stream) and persist game documents to MongoDB.",
     "verification": "pytest tests/test_infra.py",
     "design_file": "F03.md",
-    "state": "completed",
-    "evidence": "7 passed in 7.97s — pytest tests/test_infra.py -v (2026-06-26); 26 passed total"
+    "state": "todo",
+    "evidence": ""
   },
   {
     "id": "F04",
     "behavior": "C analyze-service can spawn a Stockfish subprocess over UCI, analyze a single position (FEN), and return the centipawn evaluation and best move. Verified by a standalone CLI tool.",
     "verification": "make test-analyze-single",
     "design_file": "F04.md",
-    "state": "completed",
-    "evidence": "make test-analyze-single → cp=-34 best=c7c5; make check → All checks passed (26 tests) (2026-06-26)"
+    "state": "todo",
+    "evidence": ""
   },
   {
     "id": "F05",
     "behavior": "C analyze-service loops over every move in a game PGN, computes per-move win% loss, accuracy score, and classification (best/excellent/good/inaccuracy/mistake/blunder/brilliant/book), and prints a correct move-by-move table for a known reference game.",
     "verification": "make test-analyze-game",
     "design_file": "F05.md",
-    "state": "completed",
-    "evidence": "make test-analyze-game → VALID: 7 moves; make check → All checks passed (26 tests) (2026-06-26)"
+    "state": "todo",
+    "evidence": ""
   },
   {
     "id": "F06",
     "behavior": "C analyze-service consumes jobs from the Redis stream (XREADGROUP), writes per-move progress to a Redis hash, and writes the final analysis document to MongoDB on job completion. XACK is called only after a successful MongoDB write.",
     "verification": "pytest tests/test_analyze_service.py",
     "design_file": "F06.md",
-    "state": "completed",
-    "evidence": "6 passed in 73.58s — pytest tests/test_analyze_service.py -v (2026-06-26)"
+    "state": "todo",
+    "evidence": ""
   },
   {
     "id": "F07",
-    "behavior": "GET /api/jobs/:jobId returns live progress (status, movesAnalyzed, movesTotal) read from the Redis hash. GET /api/games/:gameId returns metadata. GET /api/games/:gameId/analysis returns the full move list and player summaries once status=completed, or 409 while still running.",
+    "behavior": "GET /api/jobs/:jobId returns live progress (status, movesAnalyzed, movesTotal) read from the Redis hash. GET /api/games/:gameId returns metadata. GET /api/games/:gameId/analysis returns the full move list and player summaries once status=todo, or 409 while still running.",
     "verification": "pytest tests/test_api.py",
     "design_file": "F07.md",
-    "state": "completed",
-    "evidence": "13 passed in 9.32s — pytest tests/test_api.py -v; 39 passed total; make check → All checks passed (2026-06-26)"
+    "state": "todo",
+    "evidence": ""
   },
   {
     "id": "F08",
     "behavior": "POST /api/games deduplicates by pgnHash (and chesscomGameId when available) against MongoDB. A cache hit returns the existing gameId immediately without publishing a new Redis job.",
     "verification": "pytest tests/test_cache.py",
     "design_file": "F08.md",
-    "state": "completed",
-    "evidence": "7 passed in 5.88s — pytest tests/test_cache.py -v; 46 passed total; make check → All checks passed (2026-06-26)"
+    "state": "todo",
+    "evidence": ""
   },
   {
     "id": "F09",
     "behavior": "Frontend (React + TypeScript) accepts a PGN paste or chess.com URL, submits to the API, polls GET /api/jobs/:jobId showing a progress indicator, then renders the finished analysis: chessboard with move navigation, move list with classification badges, eval graph, and per-player accuracy/stats.",
     "verification": "pytest tests/test_frontend_e2e.py",
     "design_file": "F09.md",
-    "state": "completed",
-    "evidence": "7 passed in 16.79s — pytest tests/test_frontend_e2e.py -v (2026-06-26)"
+    "state": "todo",
+    "evidence": ""
   },
   {
     "id": "F10",
     "behavior": "POST /api/games enforces IP-based rate limiting. PGNs exceeding 300 plies or the max file size limit are rejected with 400. The C analyze-service enforces a per-move engine timeout (5s) with automatic Stockfish restart, and a per-job overall timeout (5min) that marks the job failed and XACK-s the stream entry.",
     "verification": "pytest tests/test_hardening.py",
     "design_file": "F10.md",
-    "state": "completed",
-    "evidence": "7 passed in 8.53s — pytest tests/test_hardening.py -v; 66 passed total; make check → All checks passed (2026-06-27)"
+    "state": "todo",
+    "evidence": ""
   }
 ]
