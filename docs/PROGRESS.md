@@ -45,6 +45,12 @@
   - Added robust validation and live fallback logic.
   - Wrote integration tests covering all scenarios in tests/test_api.py.
 
+- [x] Implement F09 (React + TS Frontend)
+  - Scaffolded React + TypeScript Vite project inside frontend/
+  - Created api service, custom hooks (useJobPoller), and components (InputForm, ProgressBar, Chessboard, MoveList, EvalGraph, PlayerStats)
+  - Implemented responsive, interactive panels with custom dark mode styling
+  - Wrote playwright E2E test suite covering PGN submissions, progress bar updates, move navigation, graph rendering, and accuracy stats.
+
 ## In Progress
 - None
 

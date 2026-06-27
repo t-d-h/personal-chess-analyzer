@@ -68,8 +68,8 @@
     "behavior": "Frontend (React + TypeScript) accepts a PGN paste or chess.com URL, submits to the API, polls GET /api/jobs/:jobId showing a progress indicator, then renders the finished analysis: chessboard with move navigation, move list with classification badges, eval graph, and per-player accuracy/stats.",
     "verification": "pytest tests/test_frontend_e2e.py",
     "design_file": "F09.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "pytest tests/test_frontend_e2e.py passed"
   },
   {
     "id": "F10",

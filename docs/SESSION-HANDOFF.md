@@ -1,25 +1,39 @@
 # Session Handoff
 
 ## Current State
-- F07 (GET /api/jobs/:jobId, GET /api/games/:gameId, and GET /api/games/:gameId/analysis endpoints) is fully completed.
+- F09 (React + TypeScript Frontend) is fully completed and verified with E2E Playwright tests.
+- Dev environment, API gateway, and frontend dev server are successfully wired up and restartable.
 
 ## What Changed (this session)
-- Created the new Fastify route file `src/api-gateway/src/routes/jobs.ts` for monitoring job progress from the Redis hash.
-- Updated `src/api-gateway/src/routes/games.ts` with metadata fetching (using MongoDB projection) and analysis retrieval endpoints.
-- Registered the new jobs router in `src/api-gateway/src/app.ts`.
-- Configured the API gateway to initialize a progress hash in Redis under the `queued` state when a game is first enqueued.
-- Wrote integration tests in `tests/test_api.py` covering all GET scenarios (success, not found, running with/without Redis hash, and failure cases).
-- Confirmed that `make check` compiles the worker and all 26 tests pass successfully.
+- **Scaffolded React + TS App**: Created the Vite project inside `frontend/` using `--template react-ts`.
+- **Installed Dependencies**: Installed `react-chessboard`, `chess.js`, `recharts`, `react-is`, and `react-router-dom` with React 19 compatibility.
+- **Created Core Components**:
+  - `InputForm.tsx`: Input form for PGN paste or Chess.com URLs.
+  - `ProgressBar.tsx`: Visual indicator for queued/running analysis.
+  - `Chessboard.tsx`: Renders the board position with controls (Flip, Prev, Next).
+  - `MoveList.tsx`: Highlighted, badge-coded list of all played moves.
+  - `EvalGraph.tsx`: Win% evaluation line chart (x = ply, y = win%) with active dot synchronizing with the board.
+  - `PlayerStats.tsx`: SIDE-by-side accuracies, ACPL, and classification badge counts.
+- **Created API Wrapper & Hook**:
+  - `frontend/src/services/api.ts`: Fully typed fetch wrapper.
+  - `frontend/src/hooks/useJobPoller.ts`: Hook that polls jobs until completion or failure.
+- **Configured Routing & Styling**:
+  - Wired `Home.tsx` and `AnalysisPage.tsx` using `react-router-dom` in `App.tsx`.
+  - Added comprehensive dark-themed styling in `frontend/src/index.css`.
+- **Wrote E2E Test Suite**:
+  - Created `tests/test_frontend_e2e.py` using Playwright Python to test both PGN paste and Chess.com URL paths, wait for completion, and verify all visual and interactive elements.
+- **Lifecycle & Makefile**:
+  - Updated the `Makefile` to automatically manage the frontend dev server (`make dev` starts it, `make stop` kills it, `make setup` installs frontend deps and playwright browser).
 
 ## Key Design Decisions
-- **Avoid 404 on Queued Jobs**: The API gateway writes the progress hash to Redis at creation time in `POST /api/games`, preventing early clients from receiving a 404 when polling for enqueued jobs that have not been picked up by the worker yet.
-- **Fallbacks to DB on progress lookup**: When retrieving analysis, if the job is still enqueued or running, we try to fetch live progress from the Redis progress hash first. If Redis has expired or has no progress hash, we fallback to MongoDB status/progress values to ensure a robust response.
+- **TypeScript Type Imports**: Imported interfaces using `import type` to prevent Vite ES module runtime errors in the browser.
+- **Vite Proxy**: Configured Vite proxy to route `/api/*` to the API gateway at `http://localhost:18080`, allowing seamless local testing and matching production routing.
 
 ## Environment / Running Tests
-- `make setup` installs dependencies.
-- `make dev` starts containers and local API server.
-- `make stop` stops local API server and tears down containers.
-- `make check` compiles the C worker and verifies all tests (26 tests total) pass successfully.
+- `make setup` installs dependencies (including playwright browser).
+- `make dev` starts container services, API gateway, and frontend dev server.
+- `make stop` stops all processes and containers.
+- `make check` builds C binaries, runs tests (28 tests total), and runs CLI analyses.
 
 ## Next Steps
 - Implement F08 (POST /api/games deduplication).
