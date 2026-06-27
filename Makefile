@@ -7,11 +7,12 @@ setup:
 dev:
 	docker compose up -d
 	@sleep 2
-	cd src/api-gateway && npm run dev & echo $$! > .pid
+	cd src/api-gateway && nohup npm run dev > dev.log 2>&1 & echo $$! > src/api-gateway/.pid
 
 stop:
-	-kill $$(cat src/api-gateway/.pid)
-	-rm src/api-gateway/.pid
+	-kill $$(cat src/api-gateway/.pid) 2>/dev/null || true
+	-lsof -t -i :18080 | xargs -r kill -9 2>/dev/null || true
+	-rm -f src/api-gateway/.pid
 	docker compose down
 
 test:
