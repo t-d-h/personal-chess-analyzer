@@ -126,5 +126,13 @@
     "design_file": "F16.md",
     "state": "completed",
     "evidence": "pytest tests/test_api.py && pytest tests/test_analyze_service.py passed"
+  },
+  {
+    "id": "F17",
+    "behavior": "A dev-docker-compose.yaml is created in deploy/ containing the development MongoDB and Redis services. The root Makefile is updated so that `make dev` and `make stop` commands interact with this compose file instead of the default root docker-compose.yml.",
+    "verification": "make dev && docker compose -f deploy/dev-docker-compose.yaml ps && make stop",
+    "design_file": "F17.md",
+    "state": "todo",
+    "evidence": ""
   }
 ]

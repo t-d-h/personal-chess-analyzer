@@ -1,18 +1,17 @@
 # Session Handoff
 
 ## Current State
-- Feature F16 (Save Analyzed Games in Memory / Redis Cache) is fully implemented and verified.
-- Repository is clean and in a consistent state (`make check` passes).
+- Feature F17 (Dev Docker Compose and Updated Makefile) is designed and approved.
+- The new feature entry has been added to `docs/feature_list.json` in `todo` state.
+- The design file has been saved in `docs/design_files/F17.md`.
+- No source code changes were made as per the Plan Mode constraints.
 
 ## What Changed (this session)
-- **Feature F16 C Worker**: Implemented write-through caching in `src/analyze-service/src/worker.c`. The worker now writes the completed analysis JSON to Redis under the key `game:${gameId}:analysis` with a 1-day (86,400 seconds) TTL upon successfully persisting it to MongoDB.
-- **Feature F16 API Gateway**: Implemented read-through caching in the GET `/api/games/:gameId/analysis` route in `src/api-gateway/src/routes/games.ts`. It checks Redis first; on a hit, it returns the cached moves and summaries immediately. On a miss, it queries MongoDB, sets the Redis cache, and returns.
-- **Integration Tests**:
-  - Added `test_worker_write_through_cache` to `tests/test_analyze_service.py` to verify that the C worker writes to Redis on analysis completion.
-  - Added `test_analysis_cache_hit_priority` and `test_analysis_read_through_caching` to `tests/test_api.py` to verify read-through caching and cache priority in the API gateway.
+- **Feature F17 Design**: Added feature `F17` definition in `docs/feature_list.json` and created the design specification `docs/design_files/F17.md` detailing the dev docker-compose setup and Makefile target adjustments.
+- **Progress Tracking**: Updated `docs/PROGRESS.md` with next steps for `F17`.
 
 ## Key Design Decisions
-- Handled potential Redis failures in both components gracefully by failing back to standard DB paths (MongoDB) to ensure the system remains available even if the cache layer encounters an issue.
+- Keeping the port mappings and service dependencies in `dev-docker-compose.yaml` identical to the previous `docker-compose.yml` to ensure seamless local integration tests and minimal API configuration changes.
 
 ## Next Steps
-- Implement F10 (Hardening and timeouts).
+- Implement feature `F17` (Code Mode) by creating `deploy/dev-docker-compose.yaml` and updating targets `dev` and `stop` in the root `Makefile`.
