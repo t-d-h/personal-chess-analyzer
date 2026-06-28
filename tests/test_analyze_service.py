@@ -197,3 +197,65 @@ def test_failed_analysis(worker, redis_client, mongo_client):
     # Verify stream entry acknowledged
     pending = redis_client.xpending("chess:analysis-jobs", "workers")
     assert pending["pending"] == 0
+
+def test_worker_write_through_cache(worker, redis_client, mongo_client):
+    try:
+        pending_info = redis_client.xpending("chess:analysis-jobs", "workers")
+        if pending_info and pending_info.get("pending", 0) > 0:
+            pending_details = redis_client.xpending_range("chess:analysis-jobs", "workers", "-", "+", pending_info["pending"])
+            for item in pending_details:
+                redis_client.xack("chess:analysis-jobs", "workers", item["message_id"])
+    except Exception:
+        pass
+    try:
+        redis_client.xtrim("chess:analysis-jobs", maxlen=0)
+    except Exception:
+        pass
+    db = mongo_client.chess_analyzer
+    db.games.delete_many({})
+    
+    pgn_data = """[Event "Scholar's Mate"]
+[Site "Local Test"]
+[Date "2026.06.28"]
+[Round "1"]
+[White "Player1"]
+[Black "Player2"]
+[Result "1-0"]
+
+1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0"""
+    
+    # Submit game via API Gateway
+    with httpx.Client() as client:
+        resp = client.post(f"{API_URL}/api/games", json={"pgn": pgn_data})
+        assert resp.status_code == 201
+        data = resp.json()
+        game_id = data["gameId"]
+        
+    # Poll MongoDB for completion
+    completed = False
+    start_time = time.time()
+    
+    while time.time() - start_time < 20:
+        game_doc = db.games.find_one({"_id": ObjectId(game_id)})
+        if game_doc and game_doc.get("analysis", {}).get("status") == "completed":
+            completed = True
+            break
+        time.sleep(0.5)
+        
+    assert completed is True, "Analysis did not complete in time"
+    
+    # Verify Redis key game:<gameId>:analysis was written by the worker
+    cache_key = f"game:{game_id}:analysis"
+    cached = redis_client.get(cache_key)
+    assert cached is not None
+    
+    import json
+    parsed = json.loads(cached)
+    assert "moves" in parsed
+    assert "playerSummaries" in parsed
+    assert len(parsed["moves"]) == 7
+    
+    ttl = redis_client.ttl(cache_key)
+    assert 86000 <= ttl <= 86400
+    
+    redis_client.delete(cache_key)

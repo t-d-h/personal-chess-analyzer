@@ -360,3 +360,78 @@ def test_get_game_by_chesscom_id(mongo_client, redis_client):
         redis_client.delete(progress_key)
 
     db.games.delete_one({"_id": game_id})
+
+def test_analysis_cache_hit_priority(redis_client):
+    mock_id = "507f1f77bcf86cd79943900a"
+    cache_key = f"game:{mock_id}:analysis"
+    redis_client.delete(cache_key)
+    
+    mock_data = {
+        "moves": [ { "ply": 1, "san": "e4", "classification": "best" } ],
+        "playerSummaries": [ { "color": "white", "accuracyPct": 94.2 } ]
+    }
+    import json
+    redis_client.set(cache_key, json.dumps(mock_data))
+    
+    with httpx.Client() as client:
+        resp = client.get(f"{API_URL}/api/games/{mock_id}/analysis")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["gameId"] == mock_id
+        assert data["moves"] == mock_data["moves"]
+        assert data["playerSummaries"] == mock_data["playerSummaries"]
+        
+    redis_client.delete(cache_key)
+
+def test_analysis_read_through_caching(mongo_client, redis_client):
+    db = mongo_client.chess_analyzer
+    game_id = ObjectId("507f1f77bcf86cd79943900b")
+    db.games.delete_one({"_id": game_id})
+    
+    cache_key = f"game:{str(game_id)}:analysis"
+    redis_client.delete(cache_key)
+    
+    db.games.insert_one({
+        "_id": game_id,
+        "source": "pgn_paste",
+        "chesscomGameId": None,
+        "pgn": '1. e4 e5 2. Nf3',
+        "pgnHash": "somehashval_f16",
+        "white": { "username": "Alice", "rating": 1500 },
+        "black": { "username": "Bob", "rating": 1480 },
+        "timeControl": "600+0",
+        "result": "1-0",
+        "ecoCode": "B20",
+        "playedAt": None,
+        "createdAt": datetime.datetime.now(datetime.timezone.utc),
+        "analysis": {
+            "status": "completed",
+            "movesAnalyzed": 2,
+            "movesTotal": 2,
+            "errorMessage": None,
+            "completedAt": None,
+            "moves": [ { "ply": 1, "san": "e4", "classification": "best" } ],
+            "playerSummaries": [ { "color": "white", "accuracyPct": 94.2 } ]
+        }
+    })
+    
+    with httpx.Client() as client:
+        # First call: cache miss, fetches from MongoDB, writes to Redis
+        resp = client.get(f"{API_URL}/api/games/{str(game_id)}/analysis")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["gameId"] == str(game_id)
+        
+        # Verify it has been cached to Redis
+        cached = redis_client.get(cache_key)
+        assert cached is not None
+        import json
+        parsed = json.loads(cached)
+        assert parsed["moves"] == [ { "ply": 1, "san": "e4", "classification": "best" } ]
+        
+        # Check TTL
+        ttl = redis_client.ttl(cache_key)
+        assert 86000 <= ttl <= 86400
+        
+    db.games.delete_one({"_id": game_id})
+    redis_client.delete(cache_key)

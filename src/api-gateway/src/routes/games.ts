@@ -231,6 +231,22 @@ export default async function (fastify: FastifyInstance) {
 
   fastify.get('/api/games/:gameId/analysis', async (request: FastifyRequest<{ Params: GameParams }>, reply: FastifyReply) => {
     const { gameId } = request.params;
+    const redis = getRedis();
+    const cacheKey = `game:${gameId}:analysis`;
+
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return {
+          gameId: gameId,
+          moves: parsed.moves,
+          playerSummaries: parsed.playerSummaries
+        };
+      }
+    } catch (e) {
+      // Fallback to MongoDB on Redis errors
+    }
 
     const gamesCollection = getGamesCollection();
     let query: any;
@@ -256,6 +272,16 @@ export default async function (fastify: FastifyInstance) {
     }
 
     if (game.analysis.status === 'completed') {
+      const payload = {
+        moves: game.analysis.moves,
+        playerSummaries: game.analysis.playerSummaries
+      };
+      try {
+        await redis.set(cacheKey, JSON.stringify(payload), 'EX', 86400);
+      } catch (e) {
+        // Ignore Redis set errors
+      }
+
       return {
         gameId: realGameId,
         moves: game.analysis.moves,

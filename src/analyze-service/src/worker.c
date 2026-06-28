@@ -543,14 +543,24 @@ static bool run_game_analysis(const char *game_id, const char *pgn, redisContext
     
     char mongo_err[512] = {0};
     bool mongo_ok = mongo_update_game_success(mongo_client, config->db_name, game_id, analysis_json, move_count, mongo_err, sizeof(mongo_err));
-    free(analysis_json);
-    free(evals);
-    free(moves);
     
     if (!mongo_ok) {
         snprintf(err_msg, err_msg_len, "MongoDB update failed: %s", mongo_err);
+        free(analysis_json);
+        free(evals);
+        free(moves);
         return false;
     }
+    
+    // Save analyzed game to Redis with 1-day (86400s) TTL
+    redisReply *cache_set = redisCommand(redis, "SET game:%s:analysis %s EX 86400", game_id, analysis_json);
+    if (cache_set) {
+        freeReplyObject(cache_set);
+    }
+    
+    free(analysis_json);
+    free(evals);
+    free(moves);
     
     // Update Redis progress
     redisReply *hset = redisCommand(redis, "HSET job:%s:progress status completed movesAnalyzed %d movesTotal %d", game_id, move_count, move_count);

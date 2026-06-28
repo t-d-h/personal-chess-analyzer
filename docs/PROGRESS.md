@@ -87,14 +87,19 @@
   - Implemented pagination logic that prevents race conditions by setting current page after fetch completion.
   - Added new integration and E2E tests validating the entire feature.
 
+- [x] Implement F16 (Save Analyzed Games in Memory / Redis Cache)
+  - Updated GET /api/games/:gameId/analysis to use Redis cache with 1-day TTL.
+  - Implemented write-through caching in C worker on successful database completion.
+  - Implemented read-through caching in Fastify API Gateway route.
+  - Added test suite coverage verifying cache priority, read-through caching, and worker write-through caching.
+
 ## In Progress
-- [ ] F16: Save Analyzed Games in Memory (Redis Cache) (Planning)
+- None
 
 ## Known Issues
 - None
 
 ## Next Steps
-- Implement and verify F16 design.
 - Implement F10 (Hardening and timeouts)
 
 
