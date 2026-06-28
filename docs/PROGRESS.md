@@ -51,6 +51,12 @@
   - Implemented responsive, interactive panels with custom dark mode styling
   - Wrote playwright E2E test suite covering PGN submissions, progress bar updates, move navigation, graph rendering, accuracy stats, and a specific user-requested Chess.com URL E2E test using headless=False.
 
+- [x] Implement F08 (POST /api/games deduplication)
+  - Implemented URL pre-check by chesscomGameId to avoid unnecessary external API requests.
+  - Normalized PGN to compute SHA-256 pgnHash (ignoring comments/clocks/spaces).
+  - Added race condition handling using MongoDB duplicate key E11000 exception catching.
+  - Added full test suite in tests/test_cache.py validating all caching/deduplication requirements.
+
 ## In Progress
 - None
 
@@ -58,6 +64,6 @@
 - None
 
 ## Next Steps
-- Implement F08 (POST /api/games deduplication)
+- Implement F10 (Hardening and timeouts)
 
 

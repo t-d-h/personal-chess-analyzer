@@ -91,10 +91,13 @@ async def test_long_pgn():
 
 @pytest.mark.asyncio
 async def test_deduplication(db):
+    db.games.delete_many({})
     async with httpx.AsyncClient() as client:
         response1 = await client.post(f"{API_URL}/api/games", json={"pgn": VALID_PGN})
         response2 = await client.post(f"{API_URL}/api/games", json={"pgn": VALID_PGN})
     
     assert response1.status_code == 201
-    assert response2.status_code == 201
+    assert response2.status_code == 200
     assert response1.json()["gameId"] == response2.json()["gameId"]
+    assert response2.json().get("cached") is True
+

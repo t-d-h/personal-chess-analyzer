@@ -60,8 +60,8 @@
     "behavior": "POST /api/games deduplicates by pgnHash (and chesscomGameId when available) against MongoDB. A cache hit returns the existing gameId immediately without publishing a new Redis job.",
     "verification": "pytest tests/test_cache.py",
     "design_file": "F08.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "pytest tests/test_cache.py passed"
   },
   {
     "id": "F09",

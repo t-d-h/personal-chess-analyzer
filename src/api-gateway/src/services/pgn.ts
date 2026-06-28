@@ -55,8 +55,8 @@ export function parseAndValidatePgn(pgn: string): ParsedPgn {
     }
   }
 
-  // Normalize PGN for hash: simple whitespace normalization & strip comments
-  const normalizedPgn = pgn.replace(/\{[^}]+\}/g, '').replace(/\s+/g, ' ').trim();
+  // Normalize PGN for hash: comprehensive normalization as per F08 design
+  const normalizedPgn = normalizePgn(pgn);
   const pgnHash = crypto.createHash('sha256').update(normalizedPgn).digest('hex');
 
   return {
@@ -72,3 +72,14 @@ export function parseAndValidatePgn(pgn: string): ParsedPgn {
     pgnHash
   };
 }
+
+export function normalizePgn(pgn: string): string {
+  return pgn
+    .replace(/\{[^}]*\}/g, '')     // strip { comments }
+    .replace(/;[^\n]*/g, '')        // strip ; end-of-line comments
+    .replace(/\d+\.\.\./g, '')      // strip black move numbers like "1..."
+    .replace(/\[%[^\]]*\]/g, '')    // strip [%clk ...] clock annotations
+    .replace(/\s+/g, ' ')           // collapse whitespace
+    .trim();
+}
+

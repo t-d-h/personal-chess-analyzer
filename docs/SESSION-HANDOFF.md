@@ -1,41 +1,33 @@
 # Session Handoff
 
 ## Current State
-- F09 (React + TypeScript Frontend) is fully completed and verified with E2E Playwright tests.
-- Dev environment, API gateway, and frontend dev server are successfully wired up and restartable.
+- F08 (POST /api/games deduplication) is completed and verified.
+- 35/35 pytest tests pass, C analyze-service CLI tests pass, and frontend dev server and API gateway run successfully.
 
 ## What Changed (this session)
-- **Scaffolded React + TS App**: Created the Vite project inside `frontend/` using `--template react-ts`.
-- **Installed Dependencies**: Installed `react-chessboard`, `chess.js`, `recharts`, `react-is`, and `react-router-dom` with React 19 compatibility.
-- **Created Core Components**:
-  - `InputForm.tsx`: Input form for PGN paste or Chess.com URLs.
-  - `ProgressBar.tsx`: Visual indicator for queued/running analysis.
-  - `Chessboard.tsx`: Renders the board position with controls (Flip, Prev, Next).
-  - `MoveList.tsx`: Highlighted, badge-coded list of all played moves.
-  - `EvalGraph.tsx`: Win% evaluation line chart (x = ply, y = win%) with active dot synchronizing with the board.
-  - `PlayerStats.tsx`: SIDE-by-side accuracies, ACPL, and classification badge counts.
-- **Created API Wrapper & Hook**:
-  - `frontend/src/services/api.ts`: Fully typed fetch wrapper.
-  - `frontend/src/hooks/useJobPoller.ts`: Hook that polls jobs until completion or failure.
-- **Configured Routing & Styling**:
-  - Wired `Home.tsx` and `AnalysisPage.tsx` using `react-router-dom` in `App.tsx`.
-  - Added comprehensive dark-themed styling in `frontend/src/index.css`.
-- **Wrote E2E Test Suite**:
-  - Created `tests/test_frontend_e2e.py` using Playwright Python to test both PGN paste and Chess.com URL paths, wait for completion, and verify all visual and interactive elements.
-  - Added a new E2E test (`test_frontend_e2e_user_specified_url`) with `headless=False` that inputs `https://www.chess.com/game/live/170638222548` and verifies analysis starts.
-- **Lifecycle & Makefile**:
-  - Updated the `Makefile` to automatically manage the frontend dev server (`make dev` starts it, `make stop` kills it, `make setup` installs frontend deps and playwright browser).
+- **Implemented F08 Deduplication Logic in API Gateway (`src/api-gateway/src/routes/games.ts`)**:
+  - Pre-checked `chesscomGameId` for Chess.com URL submissions before making external requests to save network calls.
+  - Normalized PGN representations (removing comments, black move indicators, clock annotations, and extra whitespaces) to calculate a consistent `pgnHash`.
+  - Added duplicate key catch (`E11000`) on concurrent identical submissions to yield the correct existing game details instead of throwing a 500 server error, rendering the ingest endpoint fully idempotent.
+  - Updated responses to return HTTP `200` with `cached: true` and the existing game/job ID on a cache hit.
+- **Improved PGN Normalization (`src/api-gateway/src/services/pgn.ts`)**:
+  - Implemented the `normalizePgn` helper function based on the F08 design specification to normalize comments and clock metadata prior to computing hashes.
+- **Created Cache Test Suite (`tests/test_cache.py`)**:
+  - Added unit and integration tests covering duplicate PGN submission, duplicate Chess.com URL submission, concurrent identical PGN submissions, different PGN submissions, PGN comments/clocks stripping cache-hit verification, and Chess.com URL followed by equivalent raw PGN cache-hit verification.
+- **Fixed Ingestion Test Suite (`tests/test_ingestion.py`)**:
+  - Updated the existing deduplication check to clear the database first and assert HTTP `200` for a cache hit response (conforming to F08's requirement).
 
 ## Key Design Decisions
-- **TypeScript Type Imports**: Imported interfaces using `import type` to prevent Vite ES module runtime errors in the browser.
-- **Vite Proxy**: Configured Vite proxy to route `/api/*` to the API gateway at `http://localhost:18080`, allowing seamless local testing and matching production routing.
-- **Mocking Specified Game ID**: Added a mock condition for the user-specified game ID `170638222548` in the API gateway's Chess.com service to enable successful backend processing and frontend analysis without relying on the undocumented single-game API endpoint (which currently returns 404).
+- **Optimized Chess.com URL Deduplication**:
+  - Querying MongoDB by `chesscomGameId` *prior* to requesting the Chess.com public API ensures faster response times and prevents hitting rate limits.
+- **Idempotency Under High Concurrency**:
+  - Wrapping the database write inside a try/catch for MongoDB duplicate key error `11000` allows parallel identical game ingestion requests to proceed without generating runtime errors or duplicate Mongo documents.
 
 ## Environment / Running Tests
-- `make setup` installs dependencies (including playwright browser).
-- `make dev` starts container services, API gateway, and frontend dev server.
-- `make stop` stops all processes and containers.
-- `make check` builds C binaries, runs tests (29 tests total), and runs CLI analyses.
+- `make setup` installs all necessary project dependencies.
+- `make dev` starts the MongoDB + Redis containers, the Fastify API gateway, and the Vite frontend.
+- `make check` runs all 35 integration, unit, and end-to-end tests as well as the C analyzer CLI test suites.
+- `make stop` tears down container infrastructure and dev processes.
 
 ## Next Steps
-- Implement F08 (POST /api/games deduplication).
+- Implement F10 (Hardening and timeouts).
