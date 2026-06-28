@@ -12,7 +12,7 @@ export const Home: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await postGame(data);
+      const response = await postGame(data as { pgn: string } | { url: string });
       // Navigate to the analysis page, passing the gameId (which is also the jobId)
       navigate(`/analysis/${response.gameId}`);
     } catch (err: any) {

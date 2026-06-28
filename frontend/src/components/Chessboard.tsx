@@ -24,13 +24,17 @@ export const Chessboard: React.FC<ChessboardProps> = ({
     <div className="chessboard-container" id="chessboard-container">
       <div className="chessboard-wrapper">
         <ReactChessboard
-          position={fen}
-          boardWidth={400}
-          boardOrientation={orientation}
-          arePiecesDraggable={false}
-          customBoardStyle={{
-            borderRadius: '8px',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+          key={fen}
+          options={{
+            position: fen,
+            boardOrientation: orientation,
+            allowDragging: false,
+            boardStyle: {
+              borderRadius: '8px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+              width: '400px',
+              height: '400px'
+            }
           }}
         />
       </div>

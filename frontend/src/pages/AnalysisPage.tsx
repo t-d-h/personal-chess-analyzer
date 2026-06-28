@@ -43,7 +43,7 @@ export const AnalysisPage: React.FC = () => {
   useEffect(() => {
     if (!gameId) return;
 
-    if (jobState?.status === 'completed') {
+    if (meta?.status === 'completed' || jobState?.status === 'completed') {
       getAnalysis(gameId)
         .then((data) => {
           setAnalysis(data);
@@ -54,7 +54,7 @@ export const AnalysisPage: React.FC = () => {
           setAnalysisError(err.message || 'Failed to load analysis details');
         });
     }
-  }, [gameId, jobState?.status]);
+  }, [gameId, meta?.status, jobState?.status]);
 
   // 3. Arrow key navigation
   useEffect(() => {
@@ -83,7 +83,7 @@ export const AnalysisPage: React.FC = () => {
     );
   }
 
-  if (pollerError || jobState?.status === 'failed') {
+  if ((pollerError || jobState?.status === 'failed') && meta?.status !== 'completed') {
     return (
       <div className="status-page error-page">
         <div className="card glass-card">
@@ -102,12 +102,15 @@ export const AnalysisPage: React.FC = () => {
       ? startFen
       : analysis.moves[currentPly - 1]?.fenAfter || startFen;
 
+  console.log('currentPly:', currentPly, 'currentFen:', currentFen);
+
   const totalPlies = analysis ? analysis.moves.length : 0;
 
   const handlePrev = () => setCurrentPly((prev) => Math.max(0, prev - 1));
   const handleNext = () => setCurrentPly((prev) => Math.min(totalPlies, prev + 1));
   const handleFlip = () => setOrientation((prev) => (prev === 'white' ? 'black' : 'white'));
   const handleSelectPly = (ply: number) => setCurrentPly(ply);
+
 
   return (
     <div className="analysis-page-container">
