@@ -1,4 +1,4 @@
-.PHONY: setup dev test check clean stop
+.PHONY: setup dev test check clean stop e2e
 
 setup:
 	cd src/api-gateway && npm install
@@ -32,4 +32,8 @@ test-analyze-game:
 	cd analyze-service && make test-game
 
 check: test test-analyze-single test-analyze-game
+
+e2e:
+	venv/bin/python tests/run_e2e.py
+
 
