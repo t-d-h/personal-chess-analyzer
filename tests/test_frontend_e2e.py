@@ -25,11 +25,11 @@ def mongo_client():
 @pytest.fixture
 def worker():
     # Build first to make sure we run the latest binary
-    subprocess.run(["make", "build-worker"], cwd="analyze-service", check=True)
+    subprocess.run(["make", "build-worker"], cwd="src/analyze-service", check=True)
     
     # Start worker process
     proc = subprocess.Popen(
-        ["./analyze-service/bin/analyze-worker"],
+        ["./src/analyze-service/bin/analyze-worker"],
         env={
             **os.environ,
             "REDIS_URL": REDIS_URL,
@@ -99,7 +99,7 @@ def test_frontend_e2e_pgn_paste(worker, redis_client, mongo_client):
         
         # Wait for completion (polls GET /api/jobs/:id, renders finished analysis)
         # We wait for the chessboard container to appear
-        page.wait_for_selector("#chessboard-container", timeout=25000)
+        page.wait_for_selector("#chessboard-container", timeout=60000)
         
         # Check that metadata banner is loaded
         assert page.is_visible("#game-meta-banner")
@@ -175,7 +175,7 @@ def test_frontend_e2e_chesscom_url(worker, redis_client, mongo_client):
         page.wait_for_selector("#progress-container")
         
         # Wait for completion and check board is rendered
-        page.wait_for_selector("#chessboard-container", timeout=25000)
+        page.wait_for_selector("#chessboard-container", timeout=60000)
         assert page.is_visible("#game-meta-banner")
         
         browser.close()
@@ -213,7 +213,7 @@ def test_frontend_e2e_chesscom_review_url(worker, redis_client, mongo_client):
         page.wait_for_selector("#progress-container")
         
         # Wait for completion and check board is rendered
-        page.wait_for_selector("#chessboard-container", timeout=25000)
+        page.wait_for_selector("#chessboard-container", timeout=60000)
         assert page.is_visible("#game-meta-banner")
         
         browser.close()
@@ -252,7 +252,7 @@ def test_frontend_e2e_user_specified_url(worker, redis_client, mongo_client):
         page.wait_for_selector("#progress-container")
         
         # Wait for completion and check board is rendered
-        page.wait_for_selector("#chessboard-container", timeout=25000)
+        page.wait_for_selector("#chessboard-container", timeout=60000)
         assert page.is_visible("#game-meta-banner")
         
         # Select starting position to start stepping

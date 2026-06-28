@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { Chess } = require(path.join(__dirname, '../../src/api-gateway/node_modules/chess.js'));
+const { Chess } = require(path.join(__dirname, '../../api-gateway/node_modules/chess.js'));
 
 function main() {
     const args = process.argv.slice(2);

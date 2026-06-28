@@ -195,7 +195,9 @@ static int spawn_pgn_to_fens(const char *pgn, FILE **out_stream, pid_t *child_pi
         close(stdout_pipe[0]);
         close(stdout_pipe[1]);
         
-        if (access("analyze-service/tools/pgn_to_fens.js", F_OK) == 0) {
+        if (access("src/analyze-service/tools/pgn_to_fens.js", F_OK) == 0) {
+            execlp("node", "node", "src/analyze-service/tools/pgn_to_fens.js", "-", NULL);
+        } else if (access("analyze-service/tools/pgn_to_fens.js", F_OK) == 0) {
             execlp("node", "node", "analyze-service/tools/pgn_to_fens.js", "-", NULL);
         } else {
             execlp("node", "node", "tools/pgn_to_fens.js", "-", NULL);

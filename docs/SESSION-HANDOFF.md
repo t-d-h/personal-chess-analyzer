@@ -1,18 +1,22 @@
 # Session Handoff
 
 ## Current State
-- All integration and end-to-end tests are passing.
-- Stale background worker process conflicts resolved.
-- Dev servers and workers are stopped cleanly at the end of the session.
+- All unit, integration, and E2E tests are passing (`make check` is fully green).
+- Development servers and workers are stopped cleanly at the end of the session.
+- Feature F15 (Scan Chess.com User) is planned and design file created in Plan Mode, ready for user review/approval.
 
 ## What Changed (this session)
-- **Resolved Integration Test Failures**: Fixed the Redis stream assertion error (`assert pending["pending"] == 0`) by introducing a robust PEL (Pending Entries List) clearing mechanism in `tests/test_analyze_service.py` and `tests/test_frontend_e2e.py`. This ensures no lingering unacknowledged messages affect subsequent test runs.
-- **Added Feature F14**: Added the definition for F14 (Chess.com-style URL for Game Analysis) to `docs/feature_list.json` and updated `docs/PROGRESS.md`.
+- **Feature F15 Planning**: Created design document `docs/design_files/F15.md` for scanning all games of a Chess.com user with paging and backend reverse archive pagination, and appended it to `docs/feature_list.json`.
+- **Refactored Paths Restoration**: Fixed paths in the root `Makefile` that were broken during the legacy cleanup refactor (moving `analyze-service` and `frontend` to `src/`).
+- **C Worker Fixes**: Updated the worker code (`src/analyze-service/src/worker.c`) to check for `pgn_to_fens.js` inside the `src/analyze-service` directory when spawned from the workspace root.
+- **Node.js Script Path Fix**: Fixed the relative path to `chess.js` inside `src/analyze-service/tools/pgn_to_fens.js` which was broken after the folder relocation.
+- **Test Paths Updates**: Updated `tests/test_analyze_service.py`, `tests/test_frontend_e2e.py`, and `tests/run_e2e.py` to target `./src/analyze-service/bin/analyze-worker`.
+- **E2E Test Stability**: Increased Playwright selector timeouts in E2E tests from 25s to 60s to prevent intermittent timeout failures under concurrent resource usage.
 
 ## Key Design Decisions
-- Handled Redis pending list clearing via `XPENDING` and explicit `XACK` of all message IDs rather than deleting the stream key (which causes `NOGROUP` errors in active worker threads).
+- Keeping the fallback checks for `pgn_to_fens.js` paths in C worker ensures compatibility when running either inside the `src/analyze-service` build environment or from the parent workspace root.
 
 ## Next Steps
-- Propose, review, and approve the design of `F14` in Plan Mode.
-- Save approved design to `docs/design_files/F14.md`.
-- Implement `F14` in Code Mode.
+- Present and review Feature F15 design with the user.
+- Transition to Implement/Code mode to build and test Feature F15 once approved.
+- Propose, review, and approve Feature F14 design.

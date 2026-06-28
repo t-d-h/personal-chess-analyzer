@@ -26,11 +26,11 @@ def mongo_client():
 @pytest.fixture
 def worker():
     # Build first to make sure we run the latest binary
-    subprocess.run(["make", "build-worker"], cwd="analyze-service", check=True)
+    subprocess.run(["make", "build-worker"], cwd="src/analyze-service", check=True)
     
     # Start worker process
     proc = subprocess.Popen(
-        ["./analyze-service/bin/analyze-worker"],
+        ["./src/analyze-service/bin/analyze-worker"],
         env={
             **os.environ,
             "REDIS_URL": REDIS_URL,

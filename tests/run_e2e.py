@@ -26,7 +26,7 @@ def main():
     print(f"Deleted {res.deleted_count} games from MongoDB.")
 
     print("Building worker...")
-    subprocess.run(["make", "build-worker"], cwd="analyze-service", check=True)
+    subprocess.run(["make", "build-worker"], cwd="src/analyze-service", check=True)
 
     print("Starting worker process...")
     worker_env = {
@@ -38,7 +38,7 @@ def main():
         "BOOK_PLIES": "4"
     }
     worker_proc = subprocess.Popen(
-        ["./analyze-service/bin/analyze-worker"],
+        ["./src/analyze-service/bin/analyze-worker"],
         env=worker_env
     )
     time.sleep(2)  # Give worker time to spin up
