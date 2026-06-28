@@ -52,6 +52,14 @@ def worker():
 def test_successful_analysis(worker, redis_client, mongo_client):
     # Clear stream and collection first to ensure clean test
     try:
+        pending_info = redis_client.xpending("chess:analysis-jobs", "workers")
+        if pending_info and pending_info.get("pending", 0) > 0:
+            pending_details = redis_client.xpending_range("chess:analysis-jobs", "workers", "-", "+", pending_info["pending"])
+            for item in pending_details:
+                redis_client.xack("chess:analysis-jobs", "workers", item["message_id"])
+    except Exception:
+        pass
+    try:
         redis_client.xtrim("chess:analysis-jobs", maxlen=0)
     except Exception:
         pass
@@ -126,6 +134,14 @@ def test_successful_analysis(worker, redis_client, mongo_client):
     assert pending["pending"] == 0
 
 def test_failed_analysis(worker, redis_client, mongo_client):
+    try:
+        pending_info = redis_client.xpending("chess:analysis-jobs", "workers")
+        if pending_info and pending_info.get("pending", 0) > 0:
+            pending_details = redis_client.xpending_range("chess:analysis-jobs", "workers", "-", "+", pending_info["pending"])
+            for item in pending_details:
+                redis_client.xack("chess:analysis-jobs", "workers", item["message_id"])
+    except Exception:
+        pass
     try:
         redis_client.xtrim("chess:analysis-jobs", maxlen=0)
     except Exception:

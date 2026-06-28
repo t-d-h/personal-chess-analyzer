@@ -71,12 +71,13 @@
   - Updated API typings and PlayerStats frontend component to display the new rating and a Phase Review report card.
 
 ## In Progress
-- None
+- [ ] F14: Chess.com-style URL for Game Analysis (Planning)
 
 ## Known Issues
 - None
 
 ## Next Steps
+- Propose and approve F14 design, then implement it.
 - Implement F10 (Hardening and timeouts)
 
 

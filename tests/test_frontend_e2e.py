@@ -51,6 +51,14 @@ def worker():
 def test_frontend_e2e_pgn_paste(worker, redis_client, mongo_client):
     # Clear DB & Stream
     try:
+        pending_info = redis_client.xpending("chess:analysis-jobs", "workers")
+        if pending_info and pending_info.get("pending", 0) > 0:
+            pending_details = redis_client.xpending_range("chess:analysis-jobs", "workers", "-", "+", pending_info["pending"])
+            for item in pending_details:
+                redis_client.xack("chess:analysis-jobs", "workers", item["message_id"])
+    except Exception:
+        pass
+    try:
         redis_client.xtrim("chess:analysis-jobs", maxlen=0)
     except Exception:
         pass
@@ -137,6 +145,14 @@ def test_frontend_e2e_pgn_paste(worker, redis_client, mongo_client):
 def test_frontend_e2e_chesscom_url(worker, redis_client, mongo_client):
     # Clear DB & Stream
     try:
+        pending_info = redis_client.xpending("chess:analysis-jobs", "workers")
+        if pending_info and pending_info.get("pending", 0) > 0:
+            pending_details = redis_client.xpending_range("chess:analysis-jobs", "workers", "-", "+", pending_info["pending"])
+            for item in pending_details:
+                redis_client.xack("chess:analysis-jobs", "workers", item["message_id"])
+    except Exception:
+        pass
+    try:
         redis_client.xtrim("chess:analysis-jobs", maxlen=0)
     except Exception:
         pass
@@ -167,6 +183,14 @@ def test_frontend_e2e_chesscom_url(worker, redis_client, mongo_client):
 def test_frontend_e2e_chesscom_review_url(worker, redis_client, mongo_client):
     # Clear DB & Stream
     try:
+        pending_info = redis_client.xpending("chess:analysis-jobs", "workers")
+        if pending_info and pending_info.get("pending", 0) > 0:
+            pending_details = redis_client.xpending_range("chess:analysis-jobs", "workers", "-", "+", pending_info["pending"])
+            for item in pending_details:
+                redis_client.xack("chess:analysis-jobs", "workers", item["message_id"])
+    except Exception:
+        pass
+    try:
         redis_client.xtrim("chess:analysis-jobs", maxlen=0)
     except Exception:
         pass
@@ -196,6 +220,14 @@ def test_frontend_e2e_chesscom_review_url(worker, redis_client, mongo_client):
 
 def test_frontend_e2e_user_specified_url(worker, redis_client, mongo_client):
     # Clear DB & Stream
+    try:
+        pending_info = redis_client.xpending("chess:analysis-jobs", "workers")
+        if pending_info and pending_info.get("pending", 0) > 0:
+            pending_details = redis_client.xpending_range("chess:analysis-jobs", "workers", "-", "+", pending_info["pending"])
+            for item in pending_details:
+                redis_client.xack("chess:analysis-jobs", "workers", item["message_id"])
+    except Exception:
+        pass
     try:
         redis_client.xtrim("chess:analysis-jobs", maxlen=0)
     except Exception:
