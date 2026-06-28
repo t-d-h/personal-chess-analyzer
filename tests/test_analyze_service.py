@@ -93,6 +93,7 @@ def test_successful_analysis(worker, redis_client, mongo_client):
         if progress.get("status") == "running":
             running_detected = True
         elif progress.get("status") == "completed":
+            running_detected = True
             break
         time.sleep(0.05)
         

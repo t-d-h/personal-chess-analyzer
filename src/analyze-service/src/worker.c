@@ -664,8 +664,13 @@ void *worker_thread(void *arg) {
             break;
         }
         if (reply->type == REDIS_REPLY_ERROR) {
-            fprintf(stderr, "[worker-%d] XAUTOCLAIM error: %s\n", ctx->worker_id, reply->str);
-            fflush(stderr);
+            if (strstr(reply->str, "NOGROUP") != NULL) {
+                redisReply *create_reply = redisCommand(redis, "XGROUP CREATE chess:analysis-jobs workers $ MKSTREAM");
+                if (create_reply) freeReplyObject(create_reply);
+            } else {
+                fprintf(stderr, "[worker-%d] XAUTOCLAIM error: %s\n", ctx->worker_id, reply->str);
+                fflush(stderr);
+            }
             freeReplyObject(reply);
             break;
         }
@@ -701,8 +706,13 @@ void *worker_thread(void *arg) {
             continue;
         }
         if (reply->type == REDIS_REPLY_ERROR) {
-            fprintf(stderr, "[worker-%d] XREADGROUP error: %s\n", ctx->worker_id, reply->str);
-            fflush(stderr);
+            if (strstr(reply->str, "NOGROUP") != NULL) {
+                redisReply *create_reply = redisCommand(redis, "XGROUP CREATE chess:analysis-jobs workers $ MKSTREAM");
+                if (create_reply) freeReplyObject(create_reply);
+            } else {
+                fprintf(stderr, "[worker-%d] XREADGROUP error: %s\n", ctx->worker_id, reply->str);
+                fflush(stderr);
+            }
             freeReplyObject(reply);
             sleep(1);
             continue;
