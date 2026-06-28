@@ -9,6 +9,7 @@ interface ChessboardProps {
   onNext: () => void;
   currentPly: number;
   totalPlies: number;
+  lastMove?: { from: string; to: string } | null;
 }
 
 export const Chessboard: React.FC<ChessboardProps> = ({
@@ -18,8 +19,20 @@ export const Chessboard: React.FC<ChessboardProps> = ({
   onPrev,
   onNext,
   currentPly,
-  totalPlies
+  totalPlies,
+  lastMove
 }) => {
+  const squareStyles = lastMove
+    ? {
+        [lastMove.from]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' },
+        [lastMove.to]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' },
+      }
+    : {};
+
+  const arrows = lastMove
+    ? [{ startSquare: lastMove.from, endSquare: lastMove.to, color: 'rgba(255, 170, 0, 0.8)' }]
+    : [];
+
   return (
     <div className="chessboard-container" id="chessboard-container">
       <div className="chessboard-wrapper">
@@ -29,6 +42,8 @@ export const Chessboard: React.FC<ChessboardProps> = ({
             position: fen,
             boardOrientation: orientation,
             allowDragging: false,
+            arrows: arrows,
+            squareStyles: squareStyles,
             boardStyle: {
               borderRadius: '8px',
               boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',

@@ -100,8 +100,8 @@
     "behavior": "Frontend visually indicates the last move on the chessboard by highlighting the 'from' and 'to' squares and rendering a custom arrow between them when navigating through analysis moves.",
     "verification": "pytest tests/test_frontend_e2e.py",
     "design_file": "F13.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "pytest tests/test_frontend_e2e.py passed"
   },
   {
     "id": "F14",

@@ -8,6 +8,7 @@ import { MoveList } from '../components/MoveList';
 import { EvalGraph } from '../components/EvalGraph';
 import { PlayerStats } from '../components/PlayerStats';
 import { ProgressBar } from '../components/ProgressBar';
+import { Chess } from 'chess.js';
 
 export const AnalysisPage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -102,6 +103,22 @@ export const AnalysisPage: React.FC = () => {
       ? startFen
       : analysis.moves[currentPly - 1]?.fenAfter || startFen;
 
+  let lastMove: { from: string; to: string } | null = null;
+  if (currentPly > 0 && analysis) {
+    const prevMove = analysis.moves[currentPly - 1];
+    if (prevMove) {
+      try {
+        const chess = new Chess(prevMove.fenBefore);
+        const moveObj = chess.move(prevMove.san);
+        if (moveObj) {
+          lastMove = { from: moveObj.from, to: moveObj.to };
+        }
+      } catch (e) {
+        console.error('Error parsing move', e);
+      }
+    }
+  }
+
   console.log('currentPly:', currentPly, 'currentFen:', currentFen);
 
   const totalPlies = analysis ? analysis.moves.length : 0;
@@ -171,6 +188,7 @@ export const AnalysisPage: React.FC = () => {
               onNext={handleNext}
               currentPly={currentPly}
               totalPlies={totalPlies}
+              lastMove={lastMove}
             />
           </div>
 

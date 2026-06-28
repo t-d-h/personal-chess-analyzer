@@ -1,22 +1,19 @@
 # Session Handoff
 
 ## Current State
-- Feature F16 (Save Analyzed Games in Memory) design has been proposed and approved.
-- Features list has been updated to include `F16`.
-- Development servers are currently stopped, leaving the repository clean for the next session.
+- Feature F13 (UI Last Move Indicator) is implemented and verified.
+- Development servers have been stopped.
+- Repository is clean and in a consistent state (`make check` passes).
 
 ## What Changed (this session)
-- **Feature F16 Planning**: Proposed a Redis-based cache system for saving completed chess game analyses with a 1-day TTL.
-- **Design Created**: Saved the approved design to `docs/design_files/F16.md`.
-- **Feature List Updated**: Added `F16` to `docs/feature_list.json`.
-- **Progress Updated**: Added `F16` to `docs/PROGRESS.md`.
+- **Feature F13 Implementation**: Updated `AnalysisPage.tsx` to compute the last move dynamically from the FEN and SAN using `chess.js`.
+- **UI Update**: Updated `Chessboard.tsx` to highlight the "from" and "to" squares and draw an arrow indicating the last move using properties provided by `react-chessboard`.
+- **Feature List and Progress**: Marked F13 as completed in `docs/feature_list.json` and `docs/PROGRESS.md`.
+- Tests run and verified successfully.
 
 ## Key Design Decisions
-- Use `game:${gameId}:analysis` as the Redis key pattern.
-- Implement read-through caching in the API Gateway and write-through caching in the C worker.
+- `chess.js` is used to determine algebraic squares ("from", "to") for accurate arrow drawing dynamically.
 
 ## Next Steps
-- Transition to **Implement/Code mode** to implement F16.
-- Write tests in `tests/test_api.py` and run `make check` to verify.
-- Review and approve F15 design.
-- Propose and approve F14 design, then implement it.
+- Transition to F16 implementation or proceed to F14/F15 designs based on user choice.
+- Continue to prioritize fixing bugs if they surface during next feature implementation.

@@ -70,6 +70,10 @@
   - Implemented heuristic Elo game rating based on accuracy percentages.
   - Updated API typings and PlayerStats frontend component to display the new rating and a Phase Review report card.
 
+- [x] Implement F13 (UI Last Move Indicator)
+  - Visually indicate the last move on the chessboard by highlighting the "from" and "to" squares.
+  - Rendered a custom arrow between them using `react-chessboard` properties.
+
 ## In Progress
 - [ ] F15: Scan Chess.com User (Planning)
 - [ ] F16: Save Analyzed Games in Memory (Redis Cache) (Planning)
