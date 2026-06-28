@@ -193,5 +193,20 @@ def test_frontend_e2e_user_specified_url(worker, redis_client, mongo_client):
         page.wait_for_selector("#chessboard-container", timeout=25000)
         assert page.is_visible("#game-meta-banner")
         
+        # Select starting position to start stepping
+        time.sleep(1.0)
+        page.click(".start-row")
+        time.sleep(1.0)
+        
+        counter_text = page.text_content("#move-counter")
+        if counter_text:
+            parts = counter_text.split("/")
+            if len(parts) == 2:
+                total_plies = int(parts[1].strip())
+                for ply in range(1, total_plies + 1):
+                    page.click("#next-move-btn")
+                    time.sleep(1.0)
+        
         browser.close()
+
 

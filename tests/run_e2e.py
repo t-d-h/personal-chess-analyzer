@@ -84,6 +84,23 @@ def main():
             
             if not completed:
                 print("\nTimeout waiting for analysis to complete!")
+            else:
+                time.sleep(1.0)
+                print("Setting board to starting position...")
+                page.click(".start-row")
+                time.sleep(1.0)
+                
+                # Retrieve the number of moves/plies from "#move-counter"
+                counter_text = page.text_content("#move-counter")
+                if counter_text:
+                    parts = counter_text.split("/")
+                    if len(parts) == 2:
+                        total_plies = int(parts[1].strip())
+                        print(f"Stepping through {total_plies} plies to show pieces moving...")
+                        for ply in range(1, total_plies + 1):
+                            print(f"Moving to ply {ply}...")
+                            page.click("#next-move-btn")
+                            time.sleep(1.0)
             
             print("\nBrowser is open. You can view the analysis page.")
             print("Press Ctrl+C or enter anything in terminal to close the browser and exit...")
