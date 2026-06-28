@@ -29,16 +29,18 @@ export default async function (fastify: FastifyInstance) {
 
     let finalPgn = pgn;
     let chesscomGameId: string | null = null;
+    let gameType: string | null = null;
     let source: "pgn_paste" | "chesscom_url" = "pgn_paste";
 
     const gamesCollection = getGamesCollection();
 
     if (url) {
-      const match = url.match(/^https?:\/\/(?:www\.)?chess\.com\/(?:analysis\/)?game\/(?:live|daily)\/([^\/?#]+)/i);
+      const match = url.match(/^https?:\/\/(?:www\.)?chess\.com\/(?:analysis\/)?game\/(live|daily)\/([^\/?#]+)/i);
       if (!match) {
         return reply.status(400).send({ error: 'not a chess.com game URL' });
       }
-      chesscomGameId = match[1];
+      gameType = match[1].toLowerCase();
+      chesscomGameId = match[2];
       source = "chesscom_url";
 
       // F08: Check chesscomGameId cache hit before fetching
@@ -48,7 +50,9 @@ export default async function (fastify: FastifyInstance) {
           gameId: existingByUrl._id.toString(),
           jobId: existingByUrl._id.toString(),
           status: existingByUrl.analysis.status,
-          cached: true
+          cached: true,
+          chesscomGameId: existingByUrl.chesscomGameId || chesscomGameId,
+          gameType: existingByUrl.gameType || gameType
         });
       }
 
@@ -71,21 +75,37 @@ export default async function (fastify: FastifyInstance) {
       return reply.status(400).send({ error: url ? 'invalid PGN from chess.com' : err.message });
     }
 
+    if (!chesscomGameId && parsed.chesscomGameId) {
+      chesscomGameId = parsed.chesscomGameId;
+    }
+    if (!gameType && parsed.gameType) {
+      gameType = parsed.gameType;
+    }
+
     // F08: Check pgnHash cache hit
     const existingByHash = await gamesCollection.findOne({ pgnHash: parsed.pgnHash });
     if (existingByHash) {
-      // If we got here via a chess.com URL but the existing doc didn't have chesscomGameId set, update it
+      // If we got here via a chess.com URL/metadata but the existing doc didn't have chesscomGameId/gameType set, update it
+      const updateDoc: any = {};
       if (chesscomGameId && !existingByHash.chesscomGameId) {
+        updateDoc.chesscomGameId = chesscomGameId;
+      }
+      if (gameType && !existingByHash.gameType) {
+        updateDoc.gameType = gameType;
+      }
+      if (Object.keys(updateDoc).length > 0) {
         await gamesCollection.updateOne(
           { _id: existingByHash._id },
-          { $set: { chesscomGameId } }
+          { $set: updateDoc }
         ).catch(() => {});
       }
       return reply.status(200).send({
         gameId: existingByHash._id.toString(),
         jobId: existingByHash._id.toString(),
         status: existingByHash.analysis.status,
-        cached: true
+        cached: true,
+        chesscomGameId: existingByHash.chesscomGameId || chesscomGameId,
+        gameType: existingByHash.gameType || gameType
       });
     }
 
@@ -118,6 +138,9 @@ export default async function (fastify: FastifyInstance) {
       if (chesscomGameId) {
         gameDoc.chesscomGameId = chesscomGameId;
       }
+      if (gameType) {
+        gameDoc.gameType = gameType;
+      }
 
       const insertResult = await gamesCollection.insertOne(gameDoc);
       const gameId = insertResult.insertedId.toString();
@@ -136,7 +159,9 @@ export default async function (fastify: FastifyInstance) {
       return reply.status(201).send({
         gameId: gameId,
         jobId: gameId,
-        status: 'queued'
+        status: 'queued',
+        chesscomGameId: chesscomGameId,
+        gameType: gameType
       });
     } catch (err: any) {
       // E11000 duplicate key error handling
@@ -154,7 +179,9 @@ export default async function (fastify: FastifyInstance) {
             gameId: existingAfterRace._id.toString(),
             jobId: existingAfterRace._id.toString(),
             status: existingAfterRace.analysis.status,
-            cached: true
+            cached: true,
+            chesscomGameId: existingAfterRace.chesscomGameId || chesscomGameId,
+            gameType: existingAfterRace.gameType || gameType
           });
         }
       }
@@ -169,13 +196,16 @@ export default async function (fastify: FastifyInstance) {
   fastify.get('/api/games/:gameId', async (request: FastifyRequest<{ Params: GameParams }>, reply: FastifyReply) => {
     const { gameId } = request.params;
 
-    if (!isValidObjectId(gameId)) {
-      return reply.status(404).send({ error: 'game not found' });
+    const gamesCollection = getGamesCollection();
+    let query: any;
+    if (isValidObjectId(gameId)) {
+      query = { _id: new ObjectId(gameId) };
+    } else {
+      query = { chesscomGameId: gameId };
     }
 
-    const gamesCollection = getGamesCollection();
     const game = await gamesCollection.findOne(
-      { _id: new ObjectId(gameId) },
+      query,
       { projection: { pgn: 0, "analysis.moves": 0, "analysis.playerSummaries": 0 } }
     );
 
@@ -193,23 +223,30 @@ export default async function (fastify: FastifyInstance) {
       ecoCode: game.ecoCode,
       playedAt: game.playedAt,
       createdAt: game.createdAt,
-      status: game.analysis.status
+      status: game.analysis.status,
+      chesscomGameId: game.chesscomGameId || null,
+      gameType: game.gameType || null
     };
   });
 
   fastify.get('/api/games/:gameId/analysis', async (request: FastifyRequest<{ Params: GameParams }>, reply: FastifyReply) => {
     const { gameId } = request.params;
 
-    if (!isValidObjectId(gameId)) {
-      return reply.status(404).send({ error: 'game not found' });
+    const gamesCollection = getGamesCollection();
+    let query: any;
+    if (isValidObjectId(gameId)) {
+      query = { _id: new ObjectId(gameId) };
+    } else {
+      query = { chesscomGameId: gameId };
     }
 
-    const gamesCollection = getGamesCollection();
-    const game = await gamesCollection.findOne({ _id: new ObjectId(gameId) });
+    const game = await gamesCollection.findOne(query);
 
     if (!game) {
       return reply.status(404).send({ error: 'game not found' });
     }
+
+    const realGameId = game._id!.toString();
 
     if (game.analysis.status === 'failed') {
       return reply.status(500).send({
@@ -220,9 +257,11 @@ export default async function (fastify: FastifyInstance) {
 
     if (game.analysis.status === 'completed') {
       return {
-        gameId: game._id!.toString(),
+        gameId: realGameId,
         moves: game.analysis.moves,
-        playerSummaries: game.analysis.playerSummaries
+        playerSummaries: game.analysis.playerSummaries,
+        chesscomGameId: game.chesscomGameId || null,
+        gameType: game.gameType || null
       };
     }
 
@@ -233,7 +272,7 @@ export default async function (fastify: FastifyInstance) {
 
     try {
       const redis = getRedis();
-      const progressData = await redis.hgetall(`job:${gameId}:progress`);
+      const progressData = await redis.hgetall(`job:${realGameId}:progress`);
       if (progressData && Object.keys(progressData).length > 0) {
         status = (progressData.status as any) || status;
         if (progressData.movesAnalyzed) {
@@ -249,7 +288,7 @@ export default async function (fastify: FastifyInstance) {
 
     return reply.status(409).send({
       error: 'analysis in progress',
-      jobId: gameId,
+      jobId: realGameId,
       status: status,
       movesAnalyzed: movesAnalyzed,
       movesTotal: movesTotal

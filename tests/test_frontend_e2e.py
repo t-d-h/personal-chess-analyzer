@@ -177,6 +177,7 @@ def test_frontend_e2e_chesscom_url(worker, redis_client, mongo_client):
         # Wait for completion and check board is rendered
         page.wait_for_selector("#chessboard-container", timeout=60000)
         assert page.is_visible("#game-meta-banner")
+        assert "/game/live/test-valid-mock" in page.url
         
         browser.close()
 
@@ -215,6 +216,7 @@ def test_frontend_e2e_chesscom_review_url(worker, redis_client, mongo_client):
         # Wait for completion and check board is rendered
         page.wait_for_selector("#chessboard-container", timeout=60000)
         assert page.is_visible("#game-meta-banner")
+        assert "/game/live/test-valid-mock" in page.url
         
         browser.close()
 
@@ -254,6 +256,7 @@ def test_frontend_e2e_user_specified_url(worker, redis_client, mongo_client):
         # Wait for completion and check board is rendered
         page.wait_for_selector("#chessboard-container", timeout=60000)
         assert page.is_visible("#game-meta-banner")
+        assert "/game/live/170638222548" in page.url
         
         # Select starting position to start stepping
         time.sleep(1.0)

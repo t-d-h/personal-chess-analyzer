@@ -284,3 +284,79 @@ def test_get_game_analysis_failed(mongo_client):
         assert data["errorMessage"] == "Stockfish subprocess exited with code 1"
 
     db.games.delete_one({"_id": game_id})
+
+def test_get_game_by_chesscom_id(mongo_client, redis_client):
+    db = mongo_client.chess_analyzer
+    game_id = ObjectId("507f1f77bcf86cd79943901f")
+    db.games.delete_one({"_id": game_id})
+    db.games.delete_one({"chesscomGameId": "test-chesscom-id-f14"})
+
+    db.games.insert_one({
+        "_id": game_id,
+        "source": "chesscom_url",
+        "chesscomGameId": "test-chesscom-id-f14",
+        "gameType": "live",
+        "pgn": '1. e4 e5',
+        "pgnHash": "somehashvalf14",
+        "white": { "username": "Alice", "rating": 1500 },
+        "black": { "username": "Bob", "rating": 1480 },
+        "timeControl": "600+0",
+        "result": "1-0",
+        "ecoCode": "B20",
+        "playedAt": None,
+        "createdAt": datetime.datetime.now(datetime.timezone.utc),
+        "analysis": {
+            "status": "completed",
+            "movesAnalyzed": 2,
+            "movesTotal": 2,
+            "errorMessage": None,
+            "completedAt": None,
+            "moves": [ { "ply": 1, "san": "e4", "classification": "best" } ],
+            "playerSummaries": [ { "color": "white", "accuracyPct": 94.2 } ]
+        }
+    })
+
+    with httpx.Client() as client:
+        # Fetch by ObjectId
+        resp = client.get(f"{API_URL}/api/games/{str(game_id)}")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["gameId"] == str(game_id)
+        assert data["chesscomGameId"] == "test-chesscom-id-f14"
+        assert data["gameType"] == "live"
+
+        resp_analysis = client.get(f"{API_URL}/api/games/{str(game_id)}/analysis")
+        assert resp_analysis.status_code == 200
+        assert resp_analysis.json()["gameId"] == str(game_id)
+
+        # Fetch by Chess.com ID
+        resp = client.get(f"{API_URL}/api/games/test-chesscom-id-f14")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["gameId"] == str(game_id)
+        assert data["chesscomGameId"] == "test-chesscom-id-f14"
+        assert data["gameType"] == "live"
+
+        resp_analysis = client.get(f"{API_URL}/api/games/test-chesscom-id-f14/analysis")
+        assert resp_analysis.status_code == 200
+        assert resp_analysis.json()["gameId"] == str(game_id)
+        assert resp_analysis.json()["chesscomGameId"] == "test-chesscom-id-f14"
+        assert resp_analysis.json()["gameType"] == "live"
+
+        # Fetch job progress using Chess.com ID
+        progress_key = f"job:{str(game_id)}:progress"
+        redis_client.delete(progress_key)
+        redis_client.hset(progress_key, mapping={
+            "status": "completed",
+            "movesAnalyzed": "2",
+            "movesTotal": "2"
+        })
+
+        resp_job = client.get(f"{API_URL}/api/jobs/test-chesscom-id-f14")
+        assert resp_job.status_code == 200
+        assert resp_job.json()["jobId"] == str(game_id)
+        assert resp_job.json()["status"] == "completed"
+
+        redis_client.delete(progress_key)
+
+    db.games.delete_one({"_id": game_id})

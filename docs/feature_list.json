@@ -108,8 +108,8 @@
     "behavior": "Frontend supports Chess.com-style URLs (/game/:gameType/:gameId) and redirects to them when analyzing Chess.com games. Backend API supports querying games by Chess.com ID.",
     "verification": "pytest tests/test_frontend_e2e.py && pytest tests/test_api.py",
     "design_file": "F14.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "pytest tests/test_frontend_e2e.py && pytest tests/test_api.py passed"
   },
   {
     "id": "F15",

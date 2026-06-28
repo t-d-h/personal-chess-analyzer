@@ -4,6 +4,7 @@ export interface GameDocument {
   _id?: ObjectId;
   source: "pgn_paste" | "chesscom_url";
   chesscomGameId: string | null;
+  gameType?: string | null;
   pgn: string;
   pgnHash: string;
   white: { username: string; rating: number | null };

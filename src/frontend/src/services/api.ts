@@ -2,6 +2,8 @@ export interface PostGameResponse {
   gameId: string;
   jobId: string;
   status: string;
+  chesscomGameId?: string | null;
+  gameType?: string | null;
 }
 
 export interface JobStatus {
@@ -23,6 +25,8 @@ export interface GameMeta {
   playedAt: string | null;
   createdAt: string;
   status: string;
+  chesscomGameId?: string | null;
+  gameType?: string | null;
 }
 
 export interface AnalysisMove {

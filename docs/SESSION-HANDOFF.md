@@ -1,19 +1,19 @@
 # Session Handoff
 
 ## Current State
-- Feature F13 (UI Last Move Indicator) is implemented and verified.
-- Development servers have been stopped.
+- Feature F14 (Chess.com-style URL for Game Analysis) is implemented and verified.
 - Repository is clean and in a consistent state (`make check` passes).
 
 ## What Changed (this session)
-- **Feature F13 Implementation**: Updated `AnalysisPage.tsx` to compute the last move dynamically from the FEN and SAN using `chess.js`.
-- **UI Update**: Updated `Chessboard.tsx` to highlight the "from" and "to" squares and draw an arrow indicating the last move using properties provided by `react-chessboard`.
-- **Feature List and Progress**: Marked F13 as completed in `docs/feature_list.json` and `docs/PROGRESS.md`.
-- Tests run and verified successfully.
+- **Feature F14 Implementation**: Updated API Gateway (`routes/games.ts` and `routes/jobs.ts`) to query games and jobs by Chess.com game ID as well as MongoDB ObjectId.
+- **Frontend updates**: Updated `App.tsx` router to accept `/game/:gameType/:gameId` URLs, and updated `Home.tsx` to redirect to them when analyzing Chess.com games.
+- **Deduplication / Ingestion updates**: Saved `gameType` in game metadata documents and parsed it from both URL matching and PGN headers dynamically.
+- **E2E & Integration tests**: Updated E2E Playwright tests and API unit tests to cover dual-lookup and redirection.
 
 ## Key Design Decisions
-- `chess.js` is used to determine algebraic squares ("from", "to") for accurate arrow drawing dynamically.
+- Interchangeable use of MongoDB ObjectId and Chess.com game ID on route parameters in games and jobs endpoints.
+- Retrieval of `gameType` directly from input URLs or PGN link headers.
 
 ## Next Steps
-- Transition to F16 implementation or proceed to F14/F15 designs based on user choice.
-- Continue to prioritize fixing bugs if they surface during next feature implementation.
+- Implement F16 or continue with F15 planning.
+- Run `make stopped` when ending session.

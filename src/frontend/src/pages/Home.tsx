@@ -13,8 +13,11 @@ export const Home: React.FC = () => {
     setError(null);
     try {
       const response = await postGame(data as { pgn: string } | { url: string });
-      // Navigate to the analysis page, passing the gameId (which is also the jobId)
-      navigate(`/analysis/${response.gameId}`);
+      if (response.chesscomGameId && response.gameType) {
+        navigate(`/game/${response.gameType}/${response.chesscomGameId}`);
+      } else {
+        navigate(`/analysis/${response.gameId}`);
+      }
     } catch (err: any) {
       setError(err.message || 'An error occurred while submitting the game.');
     } finally {

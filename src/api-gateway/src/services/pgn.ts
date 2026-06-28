@@ -12,6 +12,8 @@ export interface ParsedPgn {
   playedAt: Date | null;
   plyCount: number;
   pgnHash: string;
+  chesscomGameId?: string | null;
+  gameType?: string | null;
 }
 
 export function parseAndValidatePgn(pgn: string): ParsedPgn {
@@ -59,6 +61,17 @@ export function parseAndValidatePgn(pgn: string): ParsedPgn {
   const normalizedPgn = normalizePgn(pgn);
   const pgnHash = crypto.createHash('sha256').update(normalizedPgn).digest('hex');
 
+  const link = headers['Link'] || headers['Site'] || '';
+  let chesscomGameId: string | null = null;
+  let gameType: string | null = null;
+  if (typeof link === 'string') {
+    const linkMatch = link.match(/^https?:\/\/(?:www\.)?chess\.com\/(?:analysis\/)?game\/(live|daily)\/([^\/?#]+)/i);
+    if (linkMatch) {
+      gameType = linkMatch[1].toLowerCase();
+      chesscomGameId = linkMatch[2];
+    }
+  }
+
   return {
     whiteUsername,
     whiteRating,
@@ -69,7 +82,9 @@ export function parseAndValidatePgn(pgn: string): ParsedPgn {
     ecoCode,
     playedAt,
     plyCount,
-    pgnHash
+    pgnHash,
+    chesscomGameId,
+    gameType
   };
 }
 
