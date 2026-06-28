@@ -72,11 +72,13 @@
 
 ## In Progress
 - [ ] F15: Scan Chess.com User (Planning)
+- [ ] F16: Save Analyzed Games in Memory (Redis Cache) (Planning)
 
 ## Known Issues
 - None
 
 ## Next Steps
+- Implement and verify F16 design.
 - Review and approve F15 design.
 - Propose and approve F14 design, then implement it.
 - Implement F10 (Hardening and timeouts)

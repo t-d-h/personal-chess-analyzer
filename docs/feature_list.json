@@ -118,5 +118,13 @@
     "design_file": "F15.md",
     "state": "todo",
     "evidence": ""
+  },
+  {
+    "id": "F16",
+    "behavior": "GET /api/games/:gameId/analysis checks if the analysis is cached in Redis under the key game:{gameId}:analysis. If yes, it is returned immediately from Redis. Otherwise, it is fetched from MongoDB, cached to Redis with a 1-day TTL, and returned. When analysis is completed, the C worker also saves the analysis JSON to Redis with a 1-day TTL.",
+    "verification": "pytest tests/test_api.py",
+    "design_file": "F16.md",
+    "state": "todo",
+    "evidence": ""
   }
 ]
