@@ -35,6 +35,12 @@ typedef struct {
     int mistake_count;
     int blunder_count;
     int brilliant_count;
+    double accuracy_sum_opening;
+    int count_opening;
+    double accuracy_sum_midgame;
+    int count_midgame;
+    double accuracy_sum_endgame;
+    int count_endgame;
 } PlayerSummaryStats;
 
 static int parse_line(char *line, char *fields[], int max_fields) {
@@ -54,6 +60,18 @@ static int parse_line(char *line, char *fields[], int max_fields) {
                 len--;
             }
             break;
+        }
+    }
+    return count;
+}
+
+static int count_major_minor_pieces(const char *fen) {
+    int count = 0;
+    for (int i = 0; fen[i] != '\0' && fen[i] != ' '; i++) {
+        char c = fen[i];
+        if (c == 'Q' || c == 'R' || c == 'B' || c == 'N' ||
+            c == 'q' || c == 'r' || c == 'b' || c == 'n') {
+            count++;
         }
     }
     return count;
@@ -385,7 +403,29 @@ static bool run_game_analysis(const char *game_id, const char *pgn, redisContext
         int is_book = (ply <= config->book_plies);
         Classification c = classify(cp_loss, is_sacrifice, is_best_move, is_book);
 
+        int phase = 1; // 0=Opening, 1=Midgame, 2=Endgame
+        if (ply <= 20 || is_book) {
+            phase = 0;
+        } else if (count_major_minor_pieces(m->fenBefore) <= 6) {
+            phase = 2;
+        } else {
+            phase = 1;
+        }
+
         PlayerSummaryStats *stats = (i % 2 == 0) ? &white_stats : &black_stats;
+        
+        double phase_acc = is_book ? 100.0 : accuracy;
+        if (phase == 0) {
+            stats->accuracy_sum_opening += phase_acc;
+            stats->count_opening++;
+        } else if (phase == 1) {
+            stats->accuracy_sum_midgame += phase_acc;
+            stats->count_midgame++;
+        } else {
+            stats->accuracy_sum_endgame += phase_acc;
+            stats->count_endgame++;
+        }
+
         if (!is_book) {
             stats->non_book_count++;
             stats->accuracy_sum += accuracy;
@@ -448,6 +488,17 @@ static bool run_game_analysis(const char *game_id, const char *pgn, redisContext
     double black_acc = black_stats.non_book_count > 0 ? (black_stats.accuracy_sum / black_stats.non_book_count) : 100.0;
     int black_acpl = black_stats.non_book_count > 0 ? (int)round((double)black_stats.cp_loss_sum / black_stats.non_book_count) : 0;
 
+    int white_rating = (int)fmax(100.0, round(white_acc * 35.0 - 500.0));
+    int black_rating = (int)fmax(100.0, round(black_acc * 35.0 - 500.0));
+
+    double w_op_acc = white_stats.count_opening > 0 ? (white_stats.accuracy_sum_opening / white_stats.count_opening) : 100.0;
+    double w_mid_acc = white_stats.count_midgame > 0 ? (white_stats.accuracy_sum_midgame / white_stats.count_midgame) : 100.0;
+    double w_end_acc = white_stats.count_endgame > 0 ? (white_stats.accuracy_sum_endgame / white_stats.count_endgame) : 100.0;
+
+    double b_op_acc = black_stats.count_opening > 0 ? (black_stats.accuracy_sum_opening / black_stats.count_opening) : 100.0;
+    double b_mid_acc = black_stats.count_midgame > 0 ? (black_stats.accuracy_sum_midgame / black_stats.count_midgame) : 100.0;
+    double b_end_acc = black_stats.count_endgame > 0 ? (black_stats.accuracy_sum_endgame / black_stats.count_endgame) : 100.0;
+
     fprintf(mem, "  \"playerSummaries\": [\n");
     // White summary
     fprintf(mem, "    {\n");
@@ -460,7 +511,11 @@ static bool run_game_analysis(const char *game_id, const char *pgn, redisContext
     fprintf(mem, "      \"inaccuracyCount\": %d,\n", white_stats.inaccuracy_count);
     fprintf(mem, "      \"mistakeCount\": %d,\n", white_stats.mistake_count);
     fprintf(mem, "      \"blunderCount\": %d,\n", white_stats.blunder_count);
-    fprintf(mem, "      \"brilliantCount\": %d\n", white_stats.brilliant_count);
+    fprintf(mem, "      \"brilliantCount\": %d,\n", white_stats.brilliant_count);
+    fprintf(mem, "      \"estimatedRating\": %d,\n", white_rating);
+    fprintf(mem, "      \"openingAccuracy\": %.1f,\n", w_op_acc);
+    fprintf(mem, "      \"midgameAccuracy\": %.1f,\n", w_mid_acc);
+    fprintf(mem, "      \"endgameAccuracy\": %.1f\n", w_end_acc);
     fprintf(mem, "    },\n");
     // Black summary
     fprintf(mem, "    {\n");
@@ -473,7 +528,11 @@ static bool run_game_analysis(const char *game_id, const char *pgn, redisContext
     fprintf(mem, "      \"inaccuracyCount\": %d,\n", black_stats.inaccuracy_count);
     fprintf(mem, "      \"mistakeCount\": %d,\n", black_stats.mistake_count);
     fprintf(mem, "      \"blunderCount\": %d,\n", black_stats.blunder_count);
-    fprintf(mem, "      \"brilliantCount\": %d\n", black_stats.brilliant_count);
+    fprintf(mem, "      \"brilliantCount\": %d,\n", black_stats.brilliant_count);
+    fprintf(mem, "      \"estimatedRating\": %d,\n", black_rating);
+    fprintf(mem, "      \"openingAccuracy\": %.1f,\n", b_op_acc);
+    fprintf(mem, "      \"midgameAccuracy\": %.1f,\n", b_mid_acc);
+    fprintf(mem, "      \"endgameAccuracy\": %.1f\n", b_end_acc);
     fprintf(mem, "    }\n");
     fprintf(mem, "  ]\n");
     fprintf(mem, "}\n");

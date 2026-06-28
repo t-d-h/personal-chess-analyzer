@@ -7,14 +7,15 @@
 - Dev servers and workers run in the background as intended.
 
 ## What Changed (this session)
-- **Implemented F11 (Chess.com Analysis Review URLs)**:
-  - Updated `frontend/src/components/InputForm.tsx` to correctly accept and pass through `chess.com/analysis/game/` URLs.
-  - Ensured backend cache clearing in `tests/test_chesscom.py` for correct expected 201 behavior.
-  - Wrote explicit integration and e2e tests validating the `/review` pathing and frontend analysis.
+- **Implemented F12 (Game Rating & Phase-Specific Accuracy)**:
+  - Updated `worker.c` to compute accuracy per game phase (Opening, Middlegame, Endgame) using ply-based and FEN piece-count heuristics.
+  - Implemented an Elo-based Estimated Game Rating calculation derived from accuracy percentage.
+  - Enhanced frontend `PlayerStats.tsx` UI to display the new Phase Review report card and Game Rating.
+  - Saved design proposal to `docs/design_files/F12.md`.
 
 ## Key Design Decisions
-- Relying on MongoDB metadata for status checks when the Redis progress key has expired is cleaner than extending Redis TTL indefinitely.
-- Continued relying on native backend regex to gracefully accept `/review` segments without breaking backwards compatibility.
+- Adopted a heuristic FEN parser in C to accurately identify the transition into the Endgame by counting major/minor pieces (<=6 remaining pieces triggers endgame phase).
+- Calculated Phase-specific accuracy by persisting book-move accuracies as 100% implicitly to mirror external chess platform behavior, ensuring realistic averages.
 
 ## Next Steps
 - Implement F10 (Hardening and timeouts).

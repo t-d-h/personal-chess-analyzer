@@ -86,5 +86,13 @@
     "design_file": "F11.md",
     "state": "completed",
     "evidence": "pytest tests/test_chesscom.py && pytest tests/test_frontend_e2e.py passed"
+  },
+  {
+    "id": "F12",
+    "behavior": "Engine calculates estimated Game Rating and phase-specific accuracy (Opening, Middlegame, Endgame) for each player. API returns this data, and frontend displays Game Rating and a Phase Review report card.",
+    "verification": "pytest tests/test_analyze_service.py && pytest tests/test_frontend_e2e.py",
+    "design_file": "F12.md",
+    "state": "completed",
+    "evidence": "pytest tests/test_analyze_service.py && pytest tests/test_frontend_e2e.py passed"
   }
 ]

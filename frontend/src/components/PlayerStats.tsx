@@ -39,9 +39,30 @@ export const PlayerStats: React.FC<PlayerStatsProps> = ({
           <span className="accuracy-val">{summary.accuracyPct.toFixed(1)}%</span>
           <span className="accuracy-label">Accuracy</span>
         </div>
+        <div className="rating-box" style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
+          <span className="rating-val" style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--accent)' }}>{summary.estimatedRating}</span>
+          <span className="rating-label" style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Est. Rating</span>
+        </div>
         <div className="acpl-box">
           <span className="acpl-label">ACPL: </span>
           <span className="acpl-val">{summary.acpl}</span>
+        </div>
+        <div className="phase-review-box" style={{ margin: '1rem 0', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+          <h5 style={{ margin: '0 0 0.5rem 0', textAlign: 'center', color: 'var(--text-primary)' }}>Phase Review</h5>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 'bold' }}>{summary.openingAccuracy.toFixed(1)}%</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Opening</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 'bold' }}>{summary.midgameAccuracy.toFixed(1)}%</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Midgame</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 'bold' }}>{summary.endgameAccuracy.toFixed(1)}%</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Endgame</div>
+            </div>
+          </div>
         </div>
         <div className="classifications-grid">
           {statsList.map((stat) => (

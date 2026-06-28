@@ -52,6 +52,10 @@ export interface PlayerSummary {
   mistakeCount: number;
   blunderCount: number;
   brilliantCount: number;
+  estimatedRating: number;
+  openingAccuracy: number;
+  midgameAccuracy: number;
+  endgameAccuracy: number;
 }
 
 export interface AnalysisResponse {

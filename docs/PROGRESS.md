@@ -65,6 +65,11 @@
   - Validated API Gateway parses analysis review URLs natively and deduplicates correctly.
   - Added test_chesscom.py and test_frontend_e2e.py test coverage.
 
+- [x] Implement F12 (Game Rating & Phase-Specific Accuracy)
+  - Updated `worker.c` to categorize moves into Opening, Middlegame, and Endgame and track independent accuracy.
+  - Implemented heuristic Elo game rating based on accuracy percentages.
+  - Updated API typings and PlayerStats frontend component to display the new rating and a Phase Review report card.
+
 ## In Progress
 - None
 
