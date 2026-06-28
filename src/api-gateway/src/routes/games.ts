@@ -239,9 +239,11 @@ export default async function (fastify: FastifyInstance) {
       if (cached) {
         const parsed = JSON.parse(cached);
         return {
-          gameId: gameId,
+          gameId: parsed.gameId || gameId,
           moves: parsed.moves,
-          playerSummaries: parsed.playerSummaries
+          playerSummaries: parsed.playerSummaries,
+          chesscomGameId: parsed.chesscomGameId || null,
+          gameType: parsed.gameType || null
         };
       }
     } catch (e) {
@@ -273,8 +275,11 @@ export default async function (fastify: FastifyInstance) {
 
     if (game.analysis.status === 'completed') {
       const payload = {
+        gameId: realGameId,
         moves: game.analysis.moves,
-        playerSummaries: game.analysis.playerSummaries
+        playerSummaries: game.analysis.playerSummaries,
+        chesscomGameId: game.chesscomGameId || null,
+        gameType: game.gameType || null
       };
       try {
         await redis.set(cacheKey, JSON.stringify(payload), 'EX', 86400);

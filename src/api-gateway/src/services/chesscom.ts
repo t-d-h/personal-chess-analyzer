@@ -1,12 +1,13 @@
 import { request } from 'undici';
 
 export async function fetchPgnFromUrl(url: string): Promise<{ pgn: string; gameId: string }> {
-  const match = url.match(/^https?:\/\/(?:www\.)?chess\.com\/(?:analysis\/)?game\/(?:live|daily)\/([^\/?#]+)/i);
+  const match = url.match(/^https?:\/\/(?:www\.)?chess\.com\/(?:analysis\/)?game\/(live|daily)\/([^\/?#]+)/i);
   if (!match) {
     throw new Error('not a chess.com game URL');
   }
   
-  const gameId = match[1];
+  const gameType = match[1].toLowerCase();
+  const gameId = match[2];
   const baseUrl = process.env.CHESSCOM_API_BASE || 'https://api.chess.com/pub';
   
   // For testing timeout without complicated proxy setups
@@ -30,7 +31,8 @@ export async function fetchPgnFromUrl(url: string): Promise<{ pgn: string; gameI
   }
 
   try {
-    const { statusCode, body } = await request(`${baseUrl}/game/${gameId}`, {
+    const callbackUrl = `https://www.chess.com/callback/${gameType}/game/${gameId}`;
+    const { statusCode, body } = await request(callbackUrl, {
       headers: {
         'User-Agent': 'personal-chess-analyzer/1.0 (contact: admin@example.com)'
       },
@@ -38,21 +40,45 @@ export async function fetchPgnFromUrl(url: string): Promise<{ pgn: string; gameI
       bodyTimeout: 5000
     });
     
-    if (statusCode === 404) {
+    if (statusCode !== 200) {
       throw new Error('game not found or not public');
     }
     
-    if (statusCode !== 200) {
+    const data = await body.json() as any;
+    const username = data.players?.top?.username || data.players?.bottom?.username;
+    const endTime = data.game?.endTime;
+
+    if (!username || !endTime) {
+      throw new Error('game not found or not public');
+    }
+
+    const date = new Date(endTime * 1000);
+    const yyyy = date.getUTCFullYear();
+    const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+
+    const archiveUrl = `${baseUrl}/player/${username}/games/${yyyy}/${mm}`;
+    const { statusCode: archiveStatus, body: archiveBody } = await request(archiveUrl, {
+      headers: {
+        'User-Agent': 'personal-chess-analyzer/1.0 (contact: admin@example.com)'
+      },
+      headersTimeout: 5000,
+      bodyTimeout: 5000
+    });
+
+    if (archiveStatus !== 200) {
       throw new Error('chess.com API unavailable');
     }
-    
-    const data = await body.json() as any;
-    if (!data || !data.pgn) {
-      throw new Error('invalid PGN from chess.com');
+
+    const archiveData = await archiveBody.json() as any;
+    const games = archiveData.games || [];
+    const game = games.find((g: any) => g.url && g.url.includes(gameId));
+
+    if (!game || !game.pgn) {
+      throw new Error('game not found or not public');
     }
     
     return {
-      pgn: data.pgn,
+      pgn: game.pgn,
       gameId
     };
   } catch (error: any) {
