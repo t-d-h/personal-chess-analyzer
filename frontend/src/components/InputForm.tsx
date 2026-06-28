@@ -28,14 +28,14 @@ export const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => 
     }
 
     if (trimmedUrl) {
-      if (!trimmedUrl.includes('chess.com/game/')) {
-        setError('URL must be a valid Chess.com game URL (containing chess.com/game/).');
+      if (!trimmedUrl.includes('chess.com/game/') && !trimmedUrl.includes('chess.com/analysis/game/')) {
+        setError('URL must be a valid Chess.com game URL (containing chess.com/game/ or chess.com/analysis/game/).');
         return;
       }
       onSubmit({ url: trimmedUrl });
     } else {
       // If the pasted PGN itself looks like a Chess.com URL, treat it as a URL
-      if (trimmedPgn.includes('chess.com/game/')) {
+      if (trimmedPgn.includes('chess.com/game/') || trimmedPgn.includes('chess.com/analysis/game/')) {
         onSubmit({ url: trimmedPgn });
       } else {
         onSubmit({ pgn: trimmedPgn });

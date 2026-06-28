@@ -84,7 +84,7 @@
     "behavior": "Frontend and Backend correctly parse and ingest chess.com analysis/review URLs (e.g. https://www.chess.com/analysis/game/live/{id}/review) alongside standard live game URLs.",
     "verification": "pytest tests/test_chesscom.py && pytest tests/test_frontend_e2e.py",
     "design_file": "F11.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "pytest tests/test_chesscom.py && pytest tests/test_frontend_e2e.py passed"
   }
 ]

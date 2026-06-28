@@ -31,6 +31,25 @@ async def test_valid_chesscom_live_url(db):
     assert game["pgn"] is not None
 
 @pytest.mark.asyncio
+async def test_valid_chesscom_review_url(db):
+    # Clear any previous document from other tests to ensure a 201 Created response
+    db.games.delete_many({"chesscomGameId": "test-valid-mock"})
+    async with httpx.AsyncClient() as client:
+        # Use a mock ID since real API returns 404 for many games
+        response = await client.post(f"{API_URL}/api/games", json={"url": "https://www.chess.com/analysis/game/live/test-valid-mock/review"})
+    
+    assert response.status_code == 201
+    data = response.json()
+    assert "gameId" in data
+    
+    # We find the specific game we just inserted
+    game = db.games.find_one({"chesscomGameId": "test-valid-mock"})
+    assert game is not None
+    assert game["source"] == "chesscom_url"
+    assert game["chesscomGameId"] == "test-valid-mock"
+    assert game["pgn"] is not None
+
+@pytest.mark.asyncio
 async def test_non_chesscom_url():
     async with httpx.AsyncClient() as client:
         response = await client.post(f"{API_URL}/api/games", json={"url": "https://lichess.org/12345"})

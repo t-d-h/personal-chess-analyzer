@@ -164,6 +164,36 @@ def test_frontend_e2e_chesscom_url(worker, redis_client, mongo_client):
         
         browser.close()
 
+def test_frontend_e2e_chesscom_review_url(worker, redis_client, mongo_client):
+    # Clear DB & Stream
+    try:
+        redis_client.xtrim("chess:analysis-jobs", maxlen=0)
+    except Exception:
+        pass
+    db = mongo_client.chess_analyzer
+    db.games.delete_many({})
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        
+        # Load home page
+        page.goto(FRONTEND_URL)
+        page.wait_for_selector("#analysis-form")
+        
+        # Fill in valid mock Chess.com URL
+        page.fill("#url-input", "https://www.chess.com/analysis/game/live/test-valid-mock/review")
+        page.click("#submit-button")
+        
+        # Progress bar appears
+        page.wait_for_selector("#progress-container")
+        
+        # Wait for completion and check board is rendered
+        page.wait_for_selector("#chessboard-container", timeout=25000)
+        assert page.is_visible("#game-meta-banner")
+        
+        browser.close()
+
 def test_frontend_e2e_user_specified_url(worker, redis_client, mongo_client):
     # Clear DB & Stream
     try:

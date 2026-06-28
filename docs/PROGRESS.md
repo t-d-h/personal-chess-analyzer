@@ -60,6 +60,11 @@
   - Added race condition handling using MongoDB duplicate key E11000 exception catching.
   - Added full test suite in tests/test_cache.py validating all caching/deduplication requirements.
 
+- [x] Implement F11 (Support for Chess.com Analysis Review URLs)
+  - Updated frontend InputForm to accept /analysis/game/ URLs.
+  - Validated API Gateway parses analysis review URLs natively and deduplicates correctly.
+  - Added test_chesscom.py and test_frontend_e2e.py test coverage.
+
 ## In Progress
 - None
 
