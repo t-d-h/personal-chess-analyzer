@@ -7,13 +7,10 @@ setup:
 	venv/bin/playwright install chromium
 
 dev:
-	docker compose up -d
+	docker compose -f deploy/dev-docker-compose.yaml up -d --build
 	@sleep 2
-	docker compose exec -T redis redis-cli FLUSHALL
-	cd src/analyze-service && make build-worker
-	cd src/analyze-service && nohup ./bin/analyze-worker > ../../worker.log 2>&1 & echo $$! > src/analyze-service/.pid
-	cd src/api-gateway && nohup npm run dev > dev.log 2>&1 & echo $$! > src/api-gateway/.pid
-	cd src/frontend && nohup npm run dev > dev.log 2>&1 & echo $$! > src/frontend/.pid
+	docker compose -f deploy/dev-docker-compose.yaml exec -T redis redis-cli FLUSHALL
+
 
 stop:
 	-kill $$(cat src/api-gateway/.pid) 2>/dev/null || true
@@ -26,7 +23,8 @@ stop:
 	-rm -f src/analyze-service/.pid
 	-pkill -f analyze-worker 2>/dev/null || true
 	-pkill -f stockfish 2>/dev/null || true
-	docker compose down
+	docker compose -f deploy/dev-docker-compose.yaml down
+
 
 test:
 	cd src/analyze-service && make build-worker

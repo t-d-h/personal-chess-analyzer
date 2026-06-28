@@ -92,6 +92,12 @@
   - Implemented write-through caching in C worker on successful database completion.
   - Implemented read-through caching in Fastify API Gateway route.
   - Added test suite coverage verifying cache priority, read-through caching, and worker write-through caching.
+- [x] Implement F17 (Dev Docker Compose and Updated Makefile)
+  - Created `deploy/dev-docker-compose.yaml` compiling/serving all five services (frontend, api-gateway, analyze-service, mongodb, redis).
+  - Created `src/api-gateway/Dockerfile` for api-gateway.
+  - Updated root `Makefile` to target `deploy/dev-docker-compose.yaml`.
+  - Installed `pkg-config`, `nodejs`, and `npm` in analyze-service to support compilation inside container.
+  - Verified clean compilation, startup, test execution, and cleanup.
 
 ## In Progress
 - None
@@ -101,6 +107,5 @@
 
 ## Next Steps
 - Implement F10 (Hardening and timeouts)
-- Implement F17 (Dev Docker Compose and Updated Makefile)
 
 

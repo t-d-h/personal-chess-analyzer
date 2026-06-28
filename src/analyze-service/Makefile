@@ -1,5 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -O2
+MONGOC_PKG = $(shell pkg-config --exists libmongoc-1.0 && echo libmongoc-1.0 || echo mongoc2)
 
 build:
 	mkdir -p bin
@@ -11,7 +12,7 @@ build-analyzer:
 
 build-worker:
 	mkdir -p bin
-	$(CC) $(CFLAGS) src/uci.c src/analyzer.c src/redis_conn.c src/mongo_conn.c src/worker.c src/main_worker.c -o bin/analyze-worker $$(pkg-config --cflags --libs libmongoc-1.0 hiredis) -lpthread -lm
+	$(CC) $(CFLAGS) src/uci.c src/analyzer.c src/redis_conn.c src/mongo_conn.c src/worker.c src/main_worker.c -o bin/analyze-worker $$(pkg-config --cflags --libs $(MONGOC_PKG) hiredis) -lpthread -lm
 
 test-single: build
 	./bin/analyze-single "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1" 12
