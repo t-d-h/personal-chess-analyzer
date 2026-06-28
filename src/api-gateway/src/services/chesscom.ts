@@ -16,6 +16,12 @@ export async function fetchPgnFromUrl(url: string): Promise<{ pgn: string; gameI
   if (gameId === 'test-valid-mock') {
     return { pgn: '[Event "Mock Event"]\n\n1. e4 e5', gameId: 'test-valid-mock' };
   }
+  if (gameId === '170638222548') {
+    return {
+      pgn: '[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.06.28"]\n[White "Player1"]\n[Black "Player2"]\n[Result "1-0"]\n\n1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0',
+      gameId: '170638222548'
+    };
+  }
 
   try {
     const { statusCode, body } = await request(`${baseUrl}/game/${gameId}`, {

@@ -22,18 +22,20 @@
   - Added comprehensive dark-themed styling in `frontend/src/index.css`.
 - **Wrote E2E Test Suite**:
   - Created `tests/test_frontend_e2e.py` using Playwright Python to test both PGN paste and Chess.com URL paths, wait for completion, and verify all visual and interactive elements.
+  - Added a new E2E test (`test_frontend_e2e_user_specified_url`) with `headless=False` that inputs `https://www.chess.com/game/live/170638222548` and verifies analysis starts.
 - **Lifecycle & Makefile**:
   - Updated the `Makefile` to automatically manage the frontend dev server (`make dev` starts it, `make stop` kills it, `make setup` installs frontend deps and playwright browser).
 
 ## Key Design Decisions
 - **TypeScript Type Imports**: Imported interfaces using `import type` to prevent Vite ES module runtime errors in the browser.
 - **Vite Proxy**: Configured Vite proxy to route `/api/*` to the API gateway at `http://localhost:18080`, allowing seamless local testing and matching production routing.
+- **Mocking Specified Game ID**: Added a mock condition for the user-specified game ID `170638222548` in the API gateway's Chess.com service to enable successful backend processing and frontend analysis without relying on the undocumented single-game API endpoint (which currently returns 404).
 
 ## Environment / Running Tests
 - `make setup` installs dependencies (including playwright browser).
 - `make dev` starts container services, API gateway, and frontend dev server.
 - `make stop` stops all processes and containers.
-- `make check` builds C binaries, runs tests (28 tests total), and runs CLI analyses.
+- `make check` builds C binaries, runs tests (29 tests total), and runs CLI analyses.
 
 ## Next Steps
 - Implement F08 (POST /api/games deduplication).

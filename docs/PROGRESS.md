@@ -49,7 +49,7 @@
   - Scaffolded React + TypeScript Vite project inside frontend/
   - Created api service, custom hooks (useJobPoller), and components (InputForm, ProgressBar, Chessboard, MoveList, EvalGraph, PlayerStats)
   - Implemented responsive, interactive panels with custom dark mode styling
-  - Wrote playwright E2E test suite covering PGN submissions, progress bar updates, move navigation, graph rendering, and accuracy stats.
+  - Wrote playwright E2E test suite covering PGN submissions, progress bar updates, move navigation, graph rendering, accuracy stats, and a specific user-requested Chess.com URL E2E test using headless=False.
 
 ## In Progress
 - None

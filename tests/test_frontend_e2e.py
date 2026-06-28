@@ -163,3 +163,35 @@ def test_frontend_e2e_chesscom_url(worker, redis_client, mongo_client):
         assert page.is_visible("#game-meta-banner")
         
         browser.close()
+
+def test_frontend_e2e_user_specified_url(worker, redis_client, mongo_client):
+    # Clear DB & Stream
+    try:
+        redis_client.xtrim("chess:analysis-jobs", maxlen=0)
+    except Exception:
+        pass
+    db = mongo_client.chess_analyzer
+    db.games.delete_many({})
+
+    with sync_playwright() as p:
+        # Open playwright headless=False
+        browser = p.chromium.launch(headless=False)
+        page = browser.new_page()
+        
+        # Load home page
+        page.goto(FRONTEND_URL)
+        page.wait_for_selector("#analysis-form")
+        
+        # Paste URL and start analyze
+        page.fill("#url-input", "https://www.chess.com/game/live/170638222548")
+        page.click("#submit-button")
+        
+        # Wait for progress bar container to appear
+        page.wait_for_selector("#progress-container")
+        
+        # Wait for completion and check board is rendered
+        page.wait_for_selector("#chessboard-container", timeout=25000)
+        assert page.is_visible("#game-meta-banner")
+        
+        browser.close()
+
