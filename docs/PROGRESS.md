@@ -1,11 +1,14 @@
 # Project Progress
 
 ## Current State
-- Latest commit: (to be created)
+- Latest commit: 5886e23 ("test: update mock chesscom game PGN to the real 12-move game")
 - Test status: passing (make check)
-- Lint: N/A
+- Lint: passing (vite build passes)
 
 ## Completed
+- [x] Fix chessboard pieces not moving visually on navigate (due to react-chessboard v5 options prop change)
+- [x] Fix cached games loading / API gateway 404 when Redis progress key is expired
+- [x] Update mock Chess.com game 170638222548 PGN to match the real 12-move game
 - [x] Create Makefile with setup, dev, test, clean.
 - [x] Implement F01 (PGN Ingestion API)
   - Created Fastify API Gateway
