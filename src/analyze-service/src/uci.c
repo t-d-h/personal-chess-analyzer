@@ -45,9 +45,15 @@ int sf_spawn(StockfishProc *sf, const char *path) {
         // Wait for Stockfish to be ready
         char buf[256];
         sf_send(sf, "uci\n");
-        sf_read_until(sf, "uciok", buf, sizeof(buf));
+        if (sf_read_until(sf, "uciok", buf, sizeof(buf)) == 0) {
+            sf_kill(sf);
+            return -1;
+        }
         sf_send(sf, "isready\n");
-        sf_read_until(sf, "readyok", buf, sizeof(buf));
+        if (sf_read_until(sf, "readyok", buf, sizeof(buf)) == 0) {
+            sf_kill(sf);
+            return -1;
+        }
         
         return 0;
     }
