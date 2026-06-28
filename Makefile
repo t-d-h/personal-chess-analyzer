@@ -9,6 +9,8 @@ setup:
 dev:
 	docker compose up -d
 	@sleep 2
+	cd analyze-service && make build-worker
+	cd analyze-service && nohup ./bin/analyze-worker > ../worker.log 2>&1 & echo $$! > .pid
 	cd src/api-gateway && nohup npm run dev > dev.log 2>&1 & echo $$! > src/api-gateway/.pid
 	cd frontend && nohup npm run dev > dev.log 2>&1 & echo $$! > frontend/.pid
 
@@ -19,6 +21,10 @@ stop:
 	-kill $$(cat frontend/.pid) 2>/dev/null || true
 	-lsof -t -i :3000 | xargs -r kill -9 2>/dev/null || true
 	-rm -f frontend/.pid
+	-kill $$(cat analyze-service/.pid) 2>/dev/null || true
+	-rm -f analyze-service/.pid
+	-pkill -f analyze-worker 2>/dev/null || true
+	-pkill -f stockfish 2>/dev/null || true
 	docker compose down
 
 test:
