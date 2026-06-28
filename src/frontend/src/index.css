@@ -719,3 +719,136 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* Tabs Switcher */
+.tabs-container {
+  display: flex;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.tab-btn {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+/* Scanner Styles */
+.scanner-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.scanner-games-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.scanner-game-card {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  transition: border-color 0.2s;
+}
+
+.scanner-game-card:hover {
+  border-color: var(--primary);
+}
+
+.scanner-game-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.scanner-game-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.scanner-game-players {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.scanner-player {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.scanner-player.win {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.scanner-outcome {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.outcome-win {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+
+.outcome-loss {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--error);
+}
+
+.outcome-draw {
+  background-color: rgba(107, 114, 128, 0.15);
+  color: var(--text-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.pagination-page-info {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}

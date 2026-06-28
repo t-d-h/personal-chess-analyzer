@@ -1,19 +1,18 @@
 # Session Handoff
 
 ## Current State
-- Feature F14 (Chess.com-style URL for Game Analysis) is implemented and verified.
+- Feature F15 (Scan Chess.com User) is fully implemented and verified.
 - Repository is clean and in a consistent state (`make check` passes).
 
 ## What Changed (this session)
-- **Feature F14 Implementation**: Updated API Gateway (`routes/games.ts` and `routes/jobs.ts`) to query games and jobs by Chess.com game ID as well as MongoDB ObjectId.
-- **Frontend updates**: Updated `App.tsx` router to accept `/game/:gameType/:gameId` URLs, and updated `Home.tsx` to redirect to them when analyzing Chess.com games.
-- **Deduplication / Ingestion updates**: Saved `gameType` in game metadata documents and parsed it from both URL matching and PGN headers dynamically.
-- **E2E & Integration tests**: Updated E2E Playwright tests and API unit tests to cover dual-lookup and redirection.
+- **Feature F15 Backend**: Added `GET /api/chesscom/players/:username/games` endpoint supporting pagination (`page` and `limit` capped to 50) and returning games in chronological order backwards. Mapped mock users (`test-user-mock`, `test-timeout-mock`, `test-notfound-mock`).
+- **Feature F15 Frontend**: Added tab switcher to `Home.tsx` to toggle between PGN pasting and Chess.com player scanning. Built the `PlayerScanner` React component, rendering paginated game lists and triggering the backend evaluation job and redirecting correctly on clicking "Analyze".
+- **E2E & Integration tests**: Wrote unit/integration tests covering all mock user cases, limits, and hasMore flags. Added full browser E2E test covering tab switching, user scanning, next/prev page traversal, analysis submission, and redirection to the chess board analysis view.
 
 ## Key Design Decisions
-- Interchangeable use of MongoDB ObjectId and Chess.com game ID on route parameters in games and jobs endpoints.
-- Retrieval of `gameType` directly from input URLs or PGN link headers.
+- Pagination state is updated only after the data has been successfully fetched in `PlayerScanner` to prevent DOM/assert timing issues or race conditions in playwright tests.
+- Re-used existing game ingestion endpoints (`POST /api/games`) to process clicked chess.com game URLs from the player scan list, ensuring DRY principle and unified engine worker pipeline.
 
 ## Next Steps
-- Implement F16 or continue with F15 planning.
-- Run `make stopped` when ending session.
+- Implement F16 (Redis analysis cache lookup/save).
+- Implement F10 (Hardening and timeouts).

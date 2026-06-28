@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { parseAndValidatePgn } from '../services/pgn';
 import { getGamesCollection } from '../services/db';
 import { GameDocument } from '../models/game';
-import { fetchPgnFromUrl } from '../services/chesscom';
+import { fetchPgnFromUrl, fetchPlayerGames } from '../services/chesscom';
 import { getRedis } from '../services/redis';
 import { ObjectId } from 'mongodb';
 
@@ -293,6 +293,47 @@ export default async function (fastify: FastifyInstance) {
       movesAnalyzed: movesAnalyzed,
       movesTotal: movesTotal
     });
+  });
+
+  interface PlayerGamesParams {
+    username: string;
+  }
+
+  interface PlayerGamesQuery {
+    page?: string | number;
+    limit?: string | number;
+  }
+
+  fastify.get('/api/chesscom/players/:username/games', async (
+    request: FastifyRequest<{ Params: PlayerGamesParams; Querystring: PlayerGamesQuery }>,
+    reply: FastifyReply
+  ) => {
+    const { username } = request.params;
+    let page = parseInt(String(request.query.page || '1'), 10);
+    let limit = parseInt(String(request.query.limit || '20'), 10);
+
+    if (isNaN(page) || page < 1) {
+      page = 1;
+    }
+    if (isNaN(limit) || limit < 1) {
+      limit = 20;
+    }
+    if (limit > 50) {
+      limit = 50;
+    }
+
+    try {
+      const result = await fetchPlayerGames(username, page, limit);
+      return result;
+    } catch (err: any) {
+      if (err.message === 'player not found') {
+        return reply.status(404).send({ error: err.message });
+      }
+      if (err.message === 'chess.com API unavailable') {
+        return reply.status(502).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: err.message });
+    }
   });
 }
 

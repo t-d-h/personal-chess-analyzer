@@ -116,8 +116,8 @@
     "behavior": "GET /api/chesscom/players/:username/games returns a paginated list of Chess.com games. Frontend has a tab for 'Scan Chess.com User', displays the game list with pagination, and allows clicking 'Analyze' on a game to start analysis.",
     "verification": "pytest tests/test_chesscom.py && pytest tests/test_frontend_e2e.py",
     "design_file": "F15.md",
-    "state": "todo",
-    "evidence": ""
+    "state": "completed",
+    "evidence": "pytest tests/test_chesscom.py && pytest tests/test_frontend_e2e.py passed"
   },
   {
     "id": "F16",

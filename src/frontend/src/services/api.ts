@@ -110,3 +110,35 @@ export async function getAnalysis(gameId: string): Promise<AnalysisResponse> {
   }
   return res.json();
 }
+
+export interface ChesscomGamePlayer {
+  username: string;
+  rating: number;
+  result: string;
+}
+
+export interface ChesscomGame {
+  url: string;
+  uuid: string;
+  pgn: string;
+  white: ChesscomGamePlayer;
+  black: ChesscomGamePlayer;
+  timeControl: string;
+  timeClass: string;
+  rules: string;
+  playedAt: string;
+}
+
+export interface ChesscomGamesResponse {
+  games: ChesscomGame[];
+  hasMore: boolean;
+}
+
+export async function getPlayerGames(username: string, page = 1, limit = 20): Promise<ChesscomGamesResponse> {
+  const res = await fetch(`/api/chesscom/players/${encodeURIComponent(username)}/games?page=${page}&limit=${limit}`);
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || `HTTP error ${res.status}`);
+  }
+  return res.json();
+}

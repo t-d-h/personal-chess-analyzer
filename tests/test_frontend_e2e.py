@@ -274,4 +274,97 @@ def test_frontend_e2e_user_specified_url(worker, redis_client, mongo_client):
         
         browser.close()
 
+def test_frontend_e2e_scan_chesscom_user(worker, redis_client, mongo_client):
+    # Clear DB & Stream
+    try:
+        pending_info = redis_client.xpending("chess:analysis-jobs", "workers")
+        if pending_info and pending_info.get("pending", 0) > 0:
+            pending_details = redis_client.xpending_range("chess:analysis-jobs", "workers", "-", "+", pending_info["pending"])
+            for item in pending_details:
+                redis_client.xack("chess:analysis-jobs", "workers", item["message_id"])
+    except Exception:
+        pass
+    try:
+        redis_client.xtrim("chess:analysis-jobs", maxlen=0)
+    except Exception:
+        pass
+    db = mongo_client.chess_analyzer
+    db.games.delete_many({})
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        
+        # Load home page
+        page.goto(FRONTEND_URL)
+        page.wait_for_selector("#tab-scan")
+        
+        # Switch to "Scan Chess.com User" tab
+        page.click("#tab-scan")
+        
+        # Verify inputs exist
+        page.wait_for_selector("#scanner-username-input")
+        page.wait_for_selector("#scanner-scan-btn")
+        
+        # Submit test-user-mock
+        page.fill("#scanner-username-input", "test-user-mock")
+        page.click("#scanner-scan-btn")
+        
+        # Verify games list is loaded and page 1 has 10 games
+        page.wait_for_selector("#scanner-games-list")
+        
+        # Count list cards
+        cards = page.locator(".scanner-game-card")
+        assert cards.count() == 10
+        
+        # Verify pagination buttons and status
+        page.wait_for_selector("#scanner-prev-btn")
+        page.wait_for_selector("#scanner-next-btn")
+        
+        # Prev page button should be disabled
+        assert page.is_disabled("#scanner-prev-btn")
+        # Next page button should be enabled
+        assert not page.is_disabled("#scanner-next-btn")
+        
+        page_info = page.text_content("#scanner-page-info")
+        assert "Page 1" in page_info
+        
+        # Click Next page
+        page.click("#scanner-next-btn")
+        
+        # Wait a bit for state update and verify Page 2
+        page.wait_for_function("document.getElementById('scanner-page-info').textContent.includes('Page 2')")
+        
+        # Page 2 should have 10 games
+        assert cards.count() == 10
+        
+        # Prev page button should be enabled, Next page should be enabled
+        assert not page.is_disabled("#scanner-prev-btn")
+        assert not page.is_disabled("#scanner-next-btn")
+        
+        # Let's go to Page 3
+        page.click("#scanner-next-btn")
+        page.wait_for_function("document.getElementById('scanner-page-info').textContent.includes('Page 3')")
+        
+        # Page 3 should have 5 games
+        assert cards.count() == 5
+        assert not page.is_disabled("#scanner-prev-btn")
+        assert page.is_disabled("#scanner-next-btn")
+        
+        # Click Analyze on the first game on Page 3
+        analyze_buttons = page.locator(".scanner-analyze-btn")
+        analyze_buttons.first.click()
+        
+        # Progress bar should appear
+        page.wait_for_selector("#progress-container")
+        
+        # Wait for completion and verify chess board is rendered
+        page.wait_for_selector("#chessboard-container", timeout=60000)
+        assert page.is_visible("#game-meta-banner")
+        
+        # Verify redirect occurred (redirect to either game or analysis URL)
+        assert "/game/live/mock-" in page.url or "/analysis/" in page.url
+        
+        browser.close()
+
 

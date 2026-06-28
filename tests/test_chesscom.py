@@ -91,3 +91,49 @@ async def test_valid_chesscom_daily_url():
         response = await client.post(f"{API_URL}/api/games", json={"url": "https://www.chess.com/game/daily/999999999999999999"})
     assert response.status_code == 400
     assert "game not found" in response.text
+
+@pytest.mark.asyncio
+async def test_scan_player_success_page_1():
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{API_URL}/api/chesscom/players/test-user-mock/games?page=1&limit=10")
+    assert response.status_code == 200
+    data = response.json()
+    assert "games" in data
+    assert "hasMore" in data
+    assert len(data["games"]) == 10
+    assert data["hasMore"] is True
+    g = data["games"][0]
+    assert "url" in g
+    assert "uuid" in g
+    assert "pgn" in g
+    assert "white" in g
+    assert "black" in g
+    assert "timeControl" in g
+    assert "timeClass" in g
+    assert "rules" in g
+    assert "playedAt" in g
+
+@pytest.mark.asyncio
+async def test_scan_player_success_page_2():
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{API_URL}/api/chesscom/players/test-user-mock/games?page=2&limit=15")
+    assert response.status_code == 200
+    data = response.json()
+    assert "games" in data
+    assert "hasMore" in data
+    assert len(data["games"]) == 10
+    assert data["hasMore"] is False
+
+@pytest.mark.asyncio
+async def test_scan_player_not_found():
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{API_URL}/api/chesscom/players/test-notfound-mock/games")
+    assert response.status_code == 404
+    assert "player not found" in response.text
+
+@pytest.mark.asyncio
+async def test_scan_player_timeout():
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{API_URL}/api/chesscom/players/test-timeout-mock/games")
+    assert response.status_code == 502
+    assert "chess.com API unavailable" in response.text

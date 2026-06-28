@@ -79,8 +79,15 @@
   - Supported dual-lookup on MongoDB ObjectId / Chess.com ID in API Gateway
   - Updated redirection on submission in `Home.tsx`
 
+- [x] Implement F15 (Scan Chess.com User)
+  - Created paginated endpoint `GET /api/chesscom/players/:username/games` (capped limit to 50, parses parameters).
+  - Reverse monthly archives and games within month archives to yield chronological order backwards (most recent games first).
+  - Mapped mock users (`test-user-mock`, `test-timeout-mock`, `test-notfound-mock`).
+  - Added frontend tab switcher and `PlayerScanner` React component with loading skeleton and error boundary alerts.
+  - Implemented pagination logic that prevents race conditions by setting current page after fetch completion.
+  - Added new integration and E2E tests validating the entire feature.
+
 ## In Progress
-- [ ] F15: Scan Chess.com User (Planning)
 - [ ] F16: Save Analyzed Games in Memory (Redis Cache) (Planning)
 
 ## Known Issues
@@ -88,7 +95,6 @@
 
 ## Next Steps
 - Implement and verify F16 design.
-- Review and approve F15 design.
 - Implement F10 (Hardening and timeouts)
 
 
