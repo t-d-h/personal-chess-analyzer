@@ -9,6 +9,7 @@ setup:
 dev:
 	docker compose up -d
 	@sleep 2
+	docker compose exec -T redis redis-cli FLUSHALL
 	cd src/analyze-service && make build-worker
 	cd src/analyze-service && nohup ./bin/analyze-worker > ../../worker.log 2>&1 & echo $$! > src/analyze-service/.pid
 	cd src/api-gateway && nohup npm run dev > dev.log 2>&1 & echo $$! > src/api-gateway/.pid

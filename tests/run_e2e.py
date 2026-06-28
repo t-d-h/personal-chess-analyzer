@@ -3,12 +3,27 @@ import time
 import subprocess
 import pymongo
 import redis
+import httpx
 from playwright.sync_api import sync_playwright
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 FRONTEND_URL = "http://localhost:3000"
-GAME_URL = "https://www.chess.com/game/live/170638222548"
+PLAYER_NAME = "deborah80rojas105"
+
+
+def get_latest_game_url(username: str) -> str:
+    """Fetch the latest game URL for a Chess.com player."""
+    url = f"https://api.chess.com/pub/player/{username}/games"
+    response = httpx.get(url, timeout=10)
+    response.raise_for_status()
+    games = response.json().get("games", [])
+    if not games:
+        raise ValueError(f"No games found for player {username}")
+    latest = games[0]
+    game_url = latest["url"]
+    print(f"Found latest game for {username}: {game_url}")
+    return game_url
 
 def main():
     print("Connecting to Redis and MongoDB...")
@@ -18,7 +33,7 @@ def main():
 
     print("Clearing existing game/job cache to ensure the analysis runs fresh...")
     try:
-        redis_client.xtrim("chess:analysis-jobs", maxlen=0)
+        redis_client.flushall()
     except Exception as e:
         print(f"Warning clearing redis: {e}")
     
@@ -48,15 +63,17 @@ def main():
             print("Launching browser (headed)...")
             browser = p.chromium.launch(headless=False)
             page = browser.new_page()
-            
+
             print(f"Navigating to {FRONTEND_URL}...")
             page.goto(FRONTEND_URL)
-            
+
             print("Waiting for form...")
             page.wait_for_selector("#analysis-form")
-            
-            print(f"Entering Chess.com URL: {GAME_URL}")
-            page.fill("#url-input", GAME_URL)
+
+            print(f"Fetching latest game for player {PLAYER_NAME}...")
+            game_url = get_latest_game_url(PLAYER_NAME)
+            print(f"Entering Chess.com URL: {game_url}")
+            page.fill("#url-input", game_url)
             
             print("Submitting for analysis...")
             page.click("#submit-button")
